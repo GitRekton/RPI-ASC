@@ -109,8 +109,8 @@ def image_proc(image_src):
 	cb = cv2.getTrackbarPos('cb', 'image2')
 	ct = cv2.getTrackbarPos('ct', 'image2')
 		
-	sobelx = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=5)
-	sobelx = cv2.inRange(sobelx, np.array([100]),np.array([255]))
+	sobelx = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=7)
+	sobelx = cv2.inRange(sobelx, np.array([160]),np.array([255]))
 #	sobely = cv2.Sobel(image_src, cv2.CV_8U, 0, 1, ksize=5)
 #	cv2.imshow("sobelx", sobelx)
 	cv2.moveWindow('sobelx', 380, 700)
@@ -134,6 +134,7 @@ def trs(image_src):
 			try:
 				coords = line[0]
 				cv2.line(image_src, (coords[0], coords[1]), (coords[2], coords[3]), [255,255,255], 7)
+				cv2.line(image_src, (0, coords[3]),(250,coords[3]), [100], 9) 
 				#print "x1, y1, x2, y2"
 				#print coords
 			except:
