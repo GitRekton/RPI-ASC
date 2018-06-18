@@ -1,36 +1,35 @@
 import cv2
-#import io
 import numpy as np
 import time
 import math
-#import pigpio
-
-
-#änderung für Github
-
-#fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
-#out = cv2.VideoWriter('output.avi', fourcc, 20.0, (200, 150))
-
-#from picamera.array import PiRGBArray
-#from picamera import PiCamera
-
-#camera = PiCamera()
-#camera.resolution = (640, 480) #640,480
-#camera.framerate = 15#
-#rawCapture = PiRGBArray(camera, size=(640, 480))
 
 time.sleep(0.3)
-#Flags
+
 lines = None
-#pi = pigpio.pi()
-time.sleep(0.3)
-#pi.set_PWM_dutycycle(12, 0)
-time.sleep(0.3)
-for i in range(4):
-#    pi.set_PWM_dutycycle(18, 80)
-    time.sleep(0.1)
- #   pi.set_PWM_dutycycle(18, 0)
-    time.sleep(0.1)
+
+def init_for_Pi():
+	import pigpio
+	time.sleep(0.3)
+	from picamera.array import PiRGBArray
+	from picamera import PiCamera
+	time.sleep(0.3)
+	camera = PiCamera()
+	camera.resolution = (640, 480) #640,480
+	camera.framerate = 15#
+	rawCapture = PiRGBArray(camera, size=(640, 480))
+	
+	lines = None
+
+	pi = pigpio.pi()
+	time.sleep()
+
+	pi.set_PWM_dutycycle(12, 0)
+	for i in range(4):
+		pi.set_PWM_dutycycle(18, 80)
+		time.sleep(0.1)
+		pi.set_PWM_dutycycle(18, 0)
+		time.sleep(0.1)
+
     
 def absolute(x):
 	return -x if x < 0 else x
@@ -169,7 +168,7 @@ def main():
 		#rawCapture.truncate(0)      
 		#print ("ImageProc ", ((end2-start2)*1000),"TRS ", ((end3-start3)*1000), "Display ", (end4 - start4))
 		if cv2.waitKey(1) & 0xFF == ord('q'):
-                        pi.set_PWM_dutycycle(12,0)
+                        #pi.set_PWM_dutycycle(12,0)
                         cv2.destroyAllWindows()
 			break 	
 
