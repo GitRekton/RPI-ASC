@@ -7,9 +7,30 @@ time.sleep(0.3)
 
 lines = None
 
+#FLAGS
+RUNNING_ON_PI = False	#Abhaengig von der aktuellen Laufzeitumgebung
+
+
+def set_motor_dutycycle(x):
+	global RUNNING_ON_PI
+	if RUNNING_ON_PI == True:
+		pi.set_PWM_dutycycle(12, x)
+	else:
+		pass
+
+def activate_beeper(x):					# Parameter: 1 = An; 0 = Aus
+	global RUNNING_ON_PI
+	if RUNNING_ON_PI == True:
+		global pi
+		if x == 1:
+			pi.set_PWM_dutycycle(18, 120)
+		else:
+			pi.set_PWM_dutycycle(18, 0)
+
 def init_for_Pi():
 	import pigpio
 	time.sleep(0.3)
+	pi = pigpio.pi()
 	from picamera.array import PiRGBArray
 	from picamera import PiCamera
 	time.sleep(0.3)
@@ -20,17 +41,16 @@ def init_for_Pi():
 	
 	lines = None
 
-	pi = pigpio.pi()
 	time.sleep()
 
-	pi.set_PWM_dutycycle(12, 0)
+	set_motor_dutycycle(0)	#Sicherstellen, dass das Auto am Anfang still steht
+	
 	for i in range(4):
-		pi.set_PWM_dutycycle(18, 80)
+		activate_beeper(1)
 		time.sleep(0.1)
-		pi.set_PWM_dutycycle(18, 0)
+		activate_beeper(0)
 		time.sleep(0.1)
 
-    
 def absolute(x):
 	return -x if x < 0 else x
 
@@ -99,15 +119,15 @@ def image_proc(image_src):
 	return image_src
 
 def trs(image_src):
-        l = 0
+	l = 0
         
 
-    	#			image, -, -, threshold, minLineLenght, maxLineGap
-        lines = cv2.HoughLinesP(image_src,1, np.pi, 180, 100, 120) # 2, 60)
-        if lines is not None:
-                for line in lines:
-                        try:
-                                coords = line[0]
+	#			image, -, -, threshold, minLineLenght, maxLineGap
+	lines = cv2.HoughLinesP(image_src,1, np.pi, 180, 100, 120) # 2, 60)
+	if lines is not None:
+		for line in lines:
+			try:
+				coords = line[0]
 				cv2.line(image_src, (coords[0], coords[1]), (coords[2], coords[3]), [255,255,255], 7)
 				#print "x1, y1, x2, y2"
 				#print coords
@@ -120,17 +140,17 @@ def trs(image_src):
 			pass	
 		elif l > 169 and l < 190:
 			print l
-#		    	pi.set_PWM_dutycycle(12,70)
-#		    	pi.set_PWM_dutycycle(18,120)
+		    	set_motor_dutycycle(70)
+		    	activate_beeper(1)
 		else:
 			print "Curve ahead"
-#			pi.set_PWM_dutycycle(12,30)
-#			pi.set_PWM_dutycycle(18,120)
+			set_motor_dutycycle(30)
+			activate_beeper(1)
                         return 0
 	else:
 		print "Curve"
-#		pi.set_PWM_dutycycle(12,60)
-#		pi.set_PWM_dutycycle(18,0)
+		set_motor_dutycycle(60)
+		activate_beeper(0)
 	return l
         
 def image_display(image_src, lines):#l
