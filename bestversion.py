@@ -144,7 +144,7 @@ def image_display(image_src, lines):#l
 	if image_src is not None:
 		cv2.imshow('image_src', image_src)
         
-def main():
+if __name__ == "__main__":
 	cap = cv2.VideoCapture('testfahrtnew2.h264')
 	init()
 	while True:
@@ -172,4 +172,4 @@ def main():
                         cv2.destroyAllWindows()
 			break 	
 
-main()
+
