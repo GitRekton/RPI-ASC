@@ -5,6 +5,9 @@ import time
 import math
 #import pigpio
 
+
+#änderung für Github
+
 #fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
 #out = cv2.VideoWriter('output.avi', fourcc, 20.0, (200, 150))
 
