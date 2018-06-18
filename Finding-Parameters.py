@@ -1,3 +1,4 @@
+##THIS IS A DEBUG PYTHON CODE
 import cv2
 import numpy as np
 import time
@@ -72,10 +73,10 @@ def init():
 
 def image_proc(image_src):
 	image_src2 = image_src
-	image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)	#LaneTracking
-	image_src2 = cv2.cvtColor(image_src2, cv2.COLOR_BGR2HSV) #LaneSideTracking with ColorFilter
-	#cv2.imshow("org", image_src)
-	#cv2.imshow("org2", image_src2)
+	image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)
+	image_src2 = cv2.cvtColor(image_src2, cv2.COLOR_BGR2HSV)
+	cv2.imshow("org", image_src)
+	cv2.imshow("org2", image_src2)
 	H_low = cv2.getTrackbarPos('H_low', 'image2')
 	H_high = cv2.getTrackbarPos('H_high', 'image2')
 	S_low = cv2.getTrackbarPos('H_low', 'image2')
@@ -84,44 +85,39 @@ def image_proc(image_src):
    	V_high = cv2.getTrackbarPos('H_high', 'image2')
 
 	image_src2 = cv2.inRange(image_src2, np.array([H_low,S_low,V_low]),np.array([H_high,S_high,V_high]))
-#	cv2.imshow("org3", image_src2)
-#	pts1 = np.float32([[247,194],[312,194],[65,417],[532,417]])
-#	pts2 = np.float32([[0,0],[640,0],[0,480],[640,480]])
-#	M = cv2.getPerspectiveTransform(pts1, pts2)
-#	Minv = cv2.getPerspectiveTransform(pts2, pts1)
+	cv2.imshow("org3", image_src2)
+	#pts1 = np.float32([[247,194],[312,194],[65,417],[532,417]])
+	#pts2 = np.float32([[0,0],[640,0],[0,480],[640,480]])
+	#M = cv2.getPerspectiveTransform(pts1, pts2)
+	#Minv = cv2.getPerspectiveTransform(pts2, pts1)
 
-#	image_src = cv2.warpPerspective(image_src, M, (640, 480))
+	#image_src = cv2.warpPerspective(image_src, M, (640, 480))
 	#image_src = cv2.warpPerspective(image_src, Minv, (640,480))
-#	cv2.imshow("trans", image_src)		
+	#cv2.imshow("trans", image_src)		
 
 	# 640, 480
 	#print image_src.shape
 	#lines = None
    	#					  Zeilen, 	Spalten
 	#		[Horizont:Motorhaube, links:rechts]
-	image_src = image_src[180:420, 180:430]	# [200:400, 250:300]	
+	image_src = image_src[10:400, 180:430]	# [200:400, 250:300]	
    	#image_src = cv2.resize(image_src, (0,0), image_src, fx=0.7, fy=0.7)
    	#print image_src.shape
 		
 
 	image_src = cv2.GaussianBlur(image_src, (5,5), 0)
+	cv2.imshow("gauss", image_src)
 		
 	cb = cv2.getTrackbarPos('cb', 'image2')
 	ct = cv2.getTrackbarPos('ct', 'image2')
 		
-	sobelx = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=5)
-	sobelx = cv2.inRange(sobelx, np.array([100]),np.array([255]))
-#	sobely = cv2.Sobel(image_src, cv2.CV_8U, 0, 1, ksize=5)
-#	cv2.imshow("sobelx", sobelx)
-	cv2.moveWindow('sobelx', 380, 700)
-#	cv2.imshow("sobely", sobely)
-#	cv2.moveWindow('sobelx', 380, 700)
-	#image_src = cv2.Canny(image_src,80,88)
+	#sobelx = cv2.Sobel(image_src, cv2.CV_64F, 1, 0, ksize=3)
+	#cv2.imshow("Sobel", sobelx)
+	image_src = cv2.Canny(image_src,80,88)
 	##cv2.imshow("canny", image_src)
   
 			
-#	return image_src
-	return sobelx	
+	return image_src
 
 def trs(image_src):
 	l = 0
@@ -143,7 +139,7 @@ def trs(image_src):
 		print l
 		if l > 190:
 			pass	
-		elif l > 170 and l < 190:
+		elif l > 169 and l < 190:
 			print l
 		    	set_motor_dutycycle(70)
 		    	activate_beeper(1)
@@ -168,19 +164,20 @@ def image_display(image_src, lines):#l
 			
 	if image_src is not None:
 		cv2.imshow('image_src', image_src)
-		cv2.moveWindow('image_src', 700, 700)
         
 if __name__ == "__main__":
 	cap = cv2.VideoCapture('testfahrtnew2.h264')
-	frame_counter = 0	
 	init()
+	t = 1
 	while True:
-		
 		#image_src = frame.array
 		start1 = time.time()
-		ret, image_src = cap.read()
+		if cv2.waitKey(1) & 0xFF == ord('p'):
+			t = 0		
+		if t == 1:		
+			ret, image_src = cap.read()
 		end1 = time.time()
-
+		
 		#start2 = time.time()
 		image_src = image_proc(image_src)
 		#end2 = time.time()
@@ -195,10 +192,9 @@ if __name__ == "__main__":
 		#end4 = time.time()
 		#rawCapture.truncate(0)      
 		#print ("ImageProc ", ((end2-start2)*1000),"TRS ", ((end3-start3)*1000), "Display ", (end4 - start4))
-		if cv2.waitKey(1) & 0xFF == ord('q'):
-			set_motor_dutycycle(0)
-			cap.release()
-			cv2.destroyAllWindows()
+		if cv2.waitKey(1000) & 0xFF == ord('q'):
+                        #pi.set_PWM_dutycycle(12,0)
+                        cv2.destroyAllWindows()
 			break 	
 
 
