@@ -134,21 +134,30 @@ def image_proc(image_src):
 #	return sobelx	
 
 
+def get_median(l):
+	global Q
+	Q.pop()
+	Q.appendleft(l)
+	med = []
+	for elem in Q:
+		med.append(elem)			
+	return np.median(med)
 
 def trs(image_src):
-	l = 0
-        global Q
+	l, l_med = 0,0
+	
+        
 	
 
 	#			image, -, -, threshold, maxLineGap, minLineLenght, 
-	lines = cv2.HoughLinesP(image_src,1, np.pi, 100, 60, 100) # 2, 60)
+	lines = cv2.HoughLinesP(image_src,1, np.pi, 100, 70, 80) # 2, 60)
 	if lines is not None:
 		for line in lines:
 			try:
 				coords = line[0]
-				cv2.line(image_src, (coords[0], coords[1]), (coords[2], coords[3]), [255], 7)
+				#cv2.line(image_src, (coords[0], coords[1]), (coords[2], coords[3]), [255], 7)
 
-				cv2.line(image_src, (coords[0], 240), (coords[2], coords[3]), [100], 7)
+				#cv2.line(image_src, (coords[0], 240), (coords[2], coords[3]), [100], 7)
 
 				cv2.line(image_src, (0, coords[3]),(250,coords[3]), [100], 9) 
 				#print "x1, y1, x2, y2"
@@ -157,13 +166,9 @@ def trs(image_src):
 			    	pass	
 	if lines is not None:
 		l = absolute(240 - coords[3])
-		Q.pop()
-		Q.appendleft(l)
-		print Q
-		med = []
-		for elem in Q:
-			med.append(elem)			
-		print np.median(med)
+		l_med = get_median(l)
+		print l_med
+		cv2.line(image_src, (coords[0], 240), (coords[0], 240 - int(l_med)), [100], 20)
 #		if l > 170:
 #			print l
 #		    	set_motor_dutycycle(70)
@@ -177,11 +182,11 @@ def trs(image_src):
 		print 0
 		set_motor_dutycycle(60)
 		activate_beeper(0)
-	return l
+	return l_med
         
 def image_display(image_src, lines,l):#l
         font = cv2.FONT_HERSHEY_SIMPLEX
-	cv2.putText(image_src, str(l), (3,30), font, 0.5, (255,255,255), 2, 0)
+	cv2.putText(image_src, str(l), (3,30), font, 0.7, (120), 2, 0)
 	#if lines is None:
 	#	cv2.putText(image_src, 'Curve', (3,30), font, 0.5, (255,255,255), 2, 0)
 	#		
@@ -217,7 +222,7 @@ if __name__ == "__main__":
 		#end4 = time.time()
 		#rawCapture.truncate(0)      
 		#print ("ImageProc ", ((end2-start2)*1000),"TRS ", ((end3-start3)*1000), "Display ", (end4 - start4))
-		if cv2.waitKey(600) & 0xFF == ord('q'):
+		if cv2.waitKey(1) & 0xFF == ord('q'):
 			set_motor_dutycycle(0)
 			cap.release()
 			cv2.destroyAllWindows()
