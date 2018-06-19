@@ -140,21 +140,18 @@ def trs(image_src):
 			except:
 			    	pass	
 	if lines is not None:
-		l = absolute(coords[1] - coords[3])
-		print l
-		if l > 190:
-			pass	
-		elif l > 170 and l < 190:
-			print l
+		l = absolute(coords[1] - coords[3])	
+		if l > 170:
+			print l, ",", time.time()
 		    	set_motor_dutycycle(70)
 		    	activate_beeper(1)
 		else:
-			print "Curve ahead"
+			print l, ",", time.time()
 			set_motor_dutycycle(30)
 			activate_beeper(1)
                         return 0
 	else:
-		print "Curve"
+		print "0", ",", time.time()
 		set_motor_dutycycle(60)
 		activate_beeper(0)
 	return l
