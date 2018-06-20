@@ -11,7 +11,7 @@ lines = None
 #FLAGS
 RUNNING_ON_PI = False	#Abhaengig von der aktuellen Laufzeitumgebung
 
-Q = deque(4*[0], 4)
+Q = deque(3*[0], 3)
 
 def set_motor_dutycycle(x):
 	global RUNNING_ON_PI
@@ -65,8 +65,8 @@ def init():
 	cv2.namedWindow('image2')
 	cv2.createTrackbar('cb', 'image2', 0, 300, nothing)
 	cv2.createTrackbar('ct', 'image2', 0, 300, nothing)
-	cv2.createTrackbar('H_low', 'image2', 0, 255, nothing)
-	cv2.createTrackbar('H_high', 'image2', 0, 255, nothing)
+	cv2.createTrackbar('H_low', 'image2', 0, 179, nothing)
+	cv2.createTrackbar('H_high', 'image2', 0, 179, nothing)
 	cv2.createTrackbar('S_low', 'image2', 0, 255, nothing)
 	cv2.createTrackbar('S_high', 'image2', 0, 255, nothing)
 	cv2.createTrackbar('V_low', 'image2', 0, 255, nothing)
@@ -74,10 +74,9 @@ def init():
 
 
 def image_proc(image_src):
-	image_src2 = image_src
+	#image_src2 = image_src
 	image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)	#LaneTracking
-	image_src2 = cv2.cvtColor(image_src2, cv2.COLOR_BGR2HSV) #LaneSideTracking with ColorFilter
-	#cv2.imshow("org", image_src)
+	#image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2HSV) #LaneSideTracking with ColorFilter
 	#cv2.imshow("org2", image_src2)
 	H_low = cv2.getTrackbarPos('H_low', 'image2')
 	H_high = cv2.getTrackbarPos('H_high', 'image2')
@@ -105,26 +104,23 @@ def image_proc(image_src):
 	image_src = image_src[180:420, 180:430]	# [200:400, 250:300]	
    	#image_src = cv2.resize(image_src, (0,0), image_src, fx=0.7, fy=0.7)
    	#print image_src.shape
-		
+	cv2.imshow("org", image_src)
 
 	image_src = cv2.GaussianBlur(image_src, (5,5), 0)
-	image_src = cv2.medianBlur(image_src, 5)	
+	#image_src = cv2.Laplacian(image_src, cv2.CV_16U/cv2.CV_16S)	
+	
 	cb = cv2.getTrackbarPos('cb', 'image2')
 	ct = cv2.getTrackbarPos('ct', 'image2')
 		
 
 	image_src = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=5)
-	ret, image_src = cv2.threshold(image_src, 127, 255, 0)
-	ret, image_src2 = cv2.threshold(image_src, 127, 255, 2)
-	ret, image_src3 = cv2.threshold(image_src, 127, 255, 3)
-
-#	sobelx = cv2.inRange(sobelx, np.array([160]),np.array([255]))
-#	sobely = cv2.Sobel(image_src, cv2.CV_8U, 0, 1, ksize=5)
-	cv2.imshow("sobelx", image_src)
-	cv2.imshow("sobelx2", image_src2)
-	cv2.imshow("sobelx3", image_src3)
+	#ret, image_src = cv2.threshold(image_src, [0,0,0], [0,0,255], 0)
+	#image_src = cv2.inRange(image_src, np.array([H_low]),np.array([H_high]))
+	#image_src = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=5)
+	#image_src = cv2.Canny(image_src, cb, ct)
+	cv2.imshow("Laplacian", image_src)
 #	cv2.moveWindow('sobelx', 380, 700)
-#	cv2.imshow("sobely", sobely)
+
 #	cv2.moveWindow('sobelx', 380, 700)
 #	image_src = cv2.Canny(image_src,cb,ct)
 #	cv2.imshow("canny", image_src)
@@ -150,7 +146,7 @@ def trs(image_src):
 	
 
 	#			image, -, -, threshold, maxLineGap, minLineLenght, 
-	lines = cv2.HoughLinesP(image_src,1, np.pi, 100, 70, 80) # 2, 60)
+	lines = cv2.HoughLinesP(image_src,1, np.pi, 120, 70, 80) # 2, 60)
 	if lines is not None:
 		for line in lines:
 			try:
@@ -201,6 +197,7 @@ if __name__ == "__main__":
 	cap = cv2.VideoCapture('testfahrtnew2.h264')
 	frame_counter = 0	
 	init()
+	l = 0
 	while True:
 		
 		#image_src = frame.array
@@ -208,21 +205,21 @@ if __name__ == "__main__":
 		ret, image_src = cap.read()
 		end1 = time.time()
 
-		#start2 = time.time()
+		start2 = time.time()
 		image_src = image_proc(image_src)
-		#end2 = time.time()
+		end2 = time.time()
                 
-		#start3 = time.time()
+		start3 = time.time()
 		l = trs(image_src)
-		#end3 = time.time()
+		end3 = time.time()
 		#out.write(image_src)
 
-		#start4 = time.time()
+		start4 = time.time()
 		image_display(image_src,lines, l) #cap,l
-		#end4 = time.time()
+		end4 = time.time()
 		#rawCapture.truncate(0)      
-		#print ("ImageProc ", ((end2-start2)*1000),"TRS ", ((end3-start3)*1000), "Display ", (end4 - start4))
-		if cv2.waitKey(1) & 0xFF == ord('q'):
+		print ("ImageProc ", ((end2-start2)*1000),"TRS ", ((end3-start3)*1000), "Display ", ((end4 - start4)*1000))
+		if cv2.waitKey(600) & 0xFF == ord('q'):
 			set_motor_dutycycle(0)
 			cap.release()
 			cv2.destroyAllWindows()
