@@ -11,7 +11,7 @@ lines = None
 #FLAGS
 RUNNING_ON_PI = False	#Abhaengig von der aktuellen Laufzeitumgebung
 
-Q = deque(6*[0], 6)
+Q = deque(4*[0], 4)
 
 def set_motor_dutycycle(x):
 	global RUNNING_ON_PI
@@ -163,7 +163,13 @@ def trs(image_src):
 	if lines is not None:
 		l = absolute(240 - coords[3])
 		l_med = get_median(l)
-		print l_med
+		if l_med > 180:
+			speed = (0.5 * l_med)
+			print l_med,",", speed
+		elif l_med < 180:
+			speed = (0.01 * l_med)
+			print l_med,",", speed
+		set_motor_dutycycle(speed)
 		cv2.line(image_src, (coords[0], 240), (coords[0], 240 - int(l_med)), [100], 20)
 		cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
 #		if l > 170:
@@ -176,8 +182,9 @@ def trs(image_src):
 #			activate_beeper(1)
  #                       return 0
 	else:
-		print 0
-		set_motor_dutycycle(60)
+		speed = 60
+		print 0,",", speed
+		set_motor_dutycycle(speed)
 		activate_beeper(0)
 	return l_med
         
