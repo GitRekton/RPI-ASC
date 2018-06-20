@@ -11,7 +11,7 @@ lines = None
 #FLAGS
 RUNNING_ON_PI = False	#Abhaengig von der aktuellen Laufzeitumgebung
 
-Q = deque(3*[0], 3)
+Q = deque(6*[0], 6)
 
 def set_motor_dutycycle(x):
 	global RUNNING_ON_PI
@@ -109,11 +109,11 @@ def image_proc(image_src):
 	image_src = cv2.GaussianBlur(image_src, (5,5), 0)
 	#image_src = cv2.Laplacian(image_src, cv2.CV_16U/cv2.CV_16S)	
 	
-	cb = cv2.getTrackbarPos('cb', 'image2')
-	ct = cv2.getTrackbarPos('ct', 'image2')
+	#cb = cv2.getTrackbarPos('cb', 'image2')
+	#ct = cv2.getTrackbarPos('ct', 'image2')
 		
 
-	image_src = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=5)
+	image_src = cv2.Sobel(image_src, cv2.CV_16U/cv2.CV_16S, 1, 0, ksize=5)
 	#ret, image_src = cv2.threshold(image_src, [0,0,0], [0,0,255], 0)
 	#image_src = cv2.inRange(image_src, np.array([H_low]),np.array([H_high]))
 	#image_src = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=5)
@@ -146,7 +146,7 @@ def trs(image_src):
 	
 
 	#			image, -, -, threshold, maxLineGap, minLineLenght, 
-	lines = cv2.HoughLinesP(image_src,1, np.pi, 120, 70, 80) # 2, 60)
+	lines = cv2.HoughLinesP(image_src,1, np.pi, 160, 70, 100) # 2, 60)
 	if lines is not None:
 		for line in lines:
 			try:
@@ -155,7 +155,7 @@ def trs(image_src):
 
 				#cv2.line(image_src, (coords[0], 240), (coords[2], coords[3]), [100], 7)
 
-				cv2.line(image_src, (0, coords[3]),(250,coords[3]), [100], 9) 
+				##cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
 				#print "x1, y1, x2, y2"
 				#print coords
 			except:
@@ -165,6 +165,7 @@ def trs(image_src):
 		l_med = get_median(l)
 		print l_med
 		cv2.line(image_src, (coords[0], 240), (coords[0], 240 - int(l_med)), [100], 20)
+		cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
 #		if l > 170:
 #			print l
 #		    	set_motor_dutycycle(70)
@@ -194,7 +195,7 @@ def image_display(image_src, lines,l):#l
 		cv2.moveWindow('image_src', 700, 700)
         
 if __name__ == "__main__":
-	cap = cv2.VideoCapture('testfahrtnew2.h264')
+	cap = cv2.VideoCapture('2018_06_20_2.h264')
 	frame_counter = 0	
 	init()
 	l = 0
@@ -218,8 +219,8 @@ if __name__ == "__main__":
 		image_display(image_src,lines, l) #cap,l
 		end4 = time.time()
 		#rawCapture.truncate(0)      
-		print ("ImageProc ", ((end2-start2)*1000),"TRS ", ((end3-start3)*1000), "Display ", ((end4 - start4)*1000))
-		if cv2.waitKey(600) & 0xFF == ord('q'):
+		#print ("ImageProc ", ((end2-start2)*1000),"TRS ", ((end3-start3)*1000), "Display ", ((end4 - start4)*1000))
+		if cv2.waitKey(1) & 0xFF == ord('q'):
 			set_motor_dutycycle(0)
 			cap.release()
 			cv2.destroyAllWindows()
