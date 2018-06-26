@@ -29,29 +29,29 @@ def activate_beeper(x):					# Parameter: 1 = An; 0 = Aus
 		else:
 			pi.set_PWM_dutycycle(18, 0)
 
-def init_for_Pi():
-	import pigpio
-	time.sleep(0.3)
-	pi = pigpio.pi()
-	from picamera.array import PiRGBArray
-	from picamera import PiCamera
-	time.sleep(0.3)
-	camera = PiCamera()
-	camera.resolution = (640, 480) #640,480
-	camera.framerate = 15#
-	rawCapture = PiRGBArray(camera, size=(640, 480))
-	
-	lines = None
 
-	time.sleep()
+import pigpio
+time.sleep(0.3)
+pi = pigpio.pi()
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+time.sleep(0.3)
+camera = PiCamera()
+camera.resolution = (640, 480) #640,480
+camera.framerate = 60#
+rawCapture = PiRGBArray(camera, size=(640, 480))
 
-	set_motor_dutycycle(0)	#Sicherstellen, dass das Auto am Anfang still steht
-	
-	for i in range(4):
-		activate_beeper(1)
-		time.sleep(0.1)
-		activate_beeper(0)
-		time.sleep(0.1)
+lines = None
+
+time.sleep(0.2)
+
+set_motor_dutycycle(0)	#Sicherstellen, dass das Auto am Anfang still steht
+
+for i in range(4):
+        activate_beeper(1)
+        time.sleep(0.1)
+        activate_beeper(0)
+        time.sleep(0.1)
 
 def absolute(x):
 	return -x if x < 0 else x
@@ -62,7 +62,7 @@ def nothing(x):
 def init():
 	max_line_gap = 0
 	min_line_lenght = 0
-	cv2.namedWindow('image2')
+#	cv2.namedWindow('image2')
 	cv2.createTrackbar('cb', 'image2', 0, 300, nothing)
 	cv2.createTrackbar('ct', 'image2', 0, 300, nothing)
 	cv2.createTrackbar('H_low', 'image2', 0, 179, nothing)
@@ -78,12 +78,12 @@ def image_proc(image_src):
 	image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)	#LaneTracking
 	#image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2HSV) #LaneSideTracking with ColorFilter
 	#cv2.imshow("org2", image_src2)
-	H_low = cv2.getTrackbarPos('H_low', 'image2')
-	H_high = cv2.getTrackbarPos('H_high', 'image2')
-	S_low = cv2.getTrackbarPos('H_low', 'image2')
-	S_high = cv2.getTrackbarPos('H_high', 'image2')
-	V_low = cv2.getTrackbarPos('H_low', 'image2')
-   	V_high = cv2.getTrackbarPos('H_high', 'image2')
+#	H_low = cv2.getTrackbarPos('H_low', 'image2')
+#	H_high = cv2.getTrackbarPos('H_high', 'image2')
+#	S_low = cv2.getTrackbarPos('H_low', 'image2')
+#	S_high = cv2.getTrackbarPos('H_high', 'image2')
+#	V_low = cv2.getTrackbarPos('H_low', 'image2')
+ #  	V_high = cv2.getTrackbarPos('H_high', 'image2')
 
 	#image_src2 = cv2.inRange(image_src2, np.array([H_low,S_low,V_low]),np.array([H_high,S_high,V_high]))
 	#cv2.imshow("org3", image_src2)
@@ -104,7 +104,7 @@ def image_proc(image_src):
 	image_src = image_src[180:420, 180:430]	# [200:400, 250:300]	
    	#image_src = cv2.resize(image_src, (0,0), image_src, fx=0.7, fy=0.7)
    	#print image_src.shape
-	cv2.imshow("org", image_src)
+#	cv2.imshow("org", image_src)
 
 	image_src = cv2.GaussianBlur(image_src, (5,5), 0)
 	#image_src = cv2.Laplacian(image_src, cv2.CV_16U/cv2.CV_16S)	
@@ -117,8 +117,8 @@ def image_proc(image_src):
 	#ret, image_src = cv2.threshold(image_src, [0,0,0], [0,0,255], 0)
 	#image_src = cv2.inRange(image_src, np.array([H_low]),np.array([H_high]))
 	#image_src = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=5)
-	#image_src = cv2.Canny(image_src, cb, ct)
-	cv2.imshow("Laplacian", image_src)
+#	image_src = cv2.Canny(image_src, 100, 220)
+#	cv2.imshow("Laplacian", image_src)
 #	cv2.moveWindow('sobelx', 380, 700)
 
 #	cv2.moveWindow('sobelx', 380, 700)
@@ -155,7 +155,7 @@ def trs(image_src):
 
 				#cv2.line(image_src, (coords[0], 240), (coords[2], coords[3]), [100], 7)
 
-				##cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
+				#cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
 				#print "x1, y1, x2, y2"
 				#print coords
 			except:
@@ -164,14 +164,19 @@ def trs(image_src):
 		l = absolute(240 - coords[3])
 		l_med = get_median(l)
 		if l_med > 180:
-			speed = (0.5 * l_med)
-			print l_med,",", speed
+			set_motor_dutycycle(60)
+			#speed = (0.5 * l_med)
+			activate_beeper(1)
+			print l_med
 		elif l_med < 180:
-			speed = (0.01 * l_med)
-			print l_med,",", speed
-		set_motor_dutycycle(speed)
-		cv2.line(image_src, (coords[0], 240), (coords[0], 240 - int(l_med)), [100], 20)
-		cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
+			set_motor_dutycycle(60)
+			#speed = (0.2 * l_med)
+			print l_med
+			activate_beeper(0)
+#		set_motor_dutycycle(speed)
+                if RUNNING_ON_PI == False:
+                    cv2.line(image_src, (coords[0], 240), (coords[0], 240 - int(l_med)), [100], 20)
+                    cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
 #		if l > 170:
 #			print l
 #		    	set_motor_dutycycle(70)
@@ -183,7 +188,7 @@ def trs(image_src):
  #                       return 0
 	else:
 		speed = 60
-		print 0,",", speed
+		print 0
 		set_motor_dutycycle(speed)
 		activate_beeper(0)
 	return l_med
@@ -191,46 +196,72 @@ def trs(image_src):
 def image_display(image_src, lines,l):#l
         font = cv2.FONT_HERSHEY_SIMPLEX
 	cv2.putText(image_src, str(l), (3,30), font, 0.7, (120), 2, 0)
-	#if lines is None:
-	#	cv2.putText(image_src, 'Curve', (3,30), font, 0.5, (255,255,255), 2, 0)
-	#		
-	#else:
-	#	cv2.putText(image_src, str(l) , (3,30), font, 0.5, (255,255,255), 2, 0)
+	if lines is None:
+		cv2.putText(image_src, 'Curve', (3,30), font, 0.5, (255,255,255), 2, 0)
+			
+	else:
+		cv2.putText(image_src, str(l) , (3,30), font, 0.5, (255,255,255), 2, 0)
 			
 	if image_src is not None:
 		cv2.imshow('image_src', image_src)
 		cv2.moveWindow('image_src', 700, 700)
         
 if __name__ == "__main__":
-	cap = cv2.VideoCapture('2018_06_20_2.h264')
-	frame_counter = 0	
-	init()
+	#cap = cv2.VideoCapture('2018_06_20_2.h264')
+#	frame_counter = 0	
+#	init()
 	l = 0
-	while True:
-		
-		#image_src = frame.array
-		start1 = time.time()
-		ret, image_src = cap.read()
-		end1 = time.time()
+	perf = []
+	if RUNNING_ON_PI == True:
+            for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+                    start1 = time.time()		
+                    image_src = frame.array
+                    end1 = time.time()
 
-		start2 = time.time()
-		image_src = image_proc(image_src)
-		end2 = time.time()
+                    start2 = time.time()
+                    image_src = image_proc(image_src)
+                    end2 = time.time()
+                    
+                    start3 = time.time()
+                    l = trs(image_src)
+                    end3 = time.time()
+                    #out.write(image_src)
+
+                    start4 = time.time()
+                    image_display(image_src,lines, l) #cap,l
+                    end4 = time.time()
+                    rawCapture.truncate(0)      
+                    bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
+                    perf.append(bla)
+                    print np.median(perf)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                            set_motor_dutycycle(0)
+                            #cap.release()
+        #			cv2.destroyAllWindows()
+                            break 	
+        else:
+            cap = cv2.VideoCapture('2018_06_20_2.h264')
+            while True:
+                start1 = time.time()		
+                ret, image_src = cap.read()
+                end1 = time.time()
                 
-		start3 = time.time()
-		l = trs(image_src)
-		end3 = time.time()
-		#out.write(image_src)
+                start2 = time.time()
+                image_src = image_proc(image_src)
+                end2 = time.time()
+                
+                start3 = time.time()
+                l = trs(image_src)
+                end3 = time.time()
 
-		start4 = time.time()
-		image_display(image_src,lines, l) #cap,l
-		end4 = time.time()
-		#rawCapture.truncate(0)      
-		#print ("ImageProc ", ((end2-start2)*1000),"TRS ", ((end3-start3)*1000), "Display ", ((end4 - start4)*1000))
-		if cv2.waitKey(1) & 0xFF == ord('q'):
-			set_motor_dutycycle(0)
-			cap.release()
-			cv2.destroyAllWindows()
-			break 	
-
-
+    		start4 = time.time()
+    		image_display(image_src,lines, l) #cap,l
+    		end4 = time.time()     
+    		bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
+                perf.append(bla)
+                print np.median(perf)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                        set_motor_dutycycle(0)
+                        #cap.release()
+#			cv2.destroyAllWindows()
+                        break 	
