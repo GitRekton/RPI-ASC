@@ -4,7 +4,9 @@ import time
 import math
 import pigpio
 from collections import deque
+from thread import start_new_thread, allocate_lock
 
+#-------INIT--------------------------------------------
 time.sleep(0.3)
 pi = pigpio.pi()
 from picamera.array import PiRGBArray
@@ -17,12 +19,73 @@ rawCapture = PiRGBArray(camera, size=(640, 480))
 lines = None
 set_motor_dutycycle(0)	#Sicherstellen, dass das Auto am Anfang still steht
 
+
+
 #FLAGS
 RUNNING_ON_PI = True	#Abhaengig von der aktuellen Laufzeitumgebung
 MOTOR_ACTIVE = False
 BEEPER_ACTIVE = False
+THREAD_STARTED = False
 
+lock = allocate_lock()
 Q = deque(4*[0], 4)
+
+# FUNCTIONS FOR I2C------------------------------------------------------------
+# Register
+power_mgmt_1 = 0x6b
+power_mgmt_2 = 0x6c
+
+#Thread um daten aus Sensor auszulesen
+def get_acc_data():
+    global num_threads, THREAD_STARTED
+    lock.acquire()
+    num_threads += 1
+    THREAD_STARTED = True
+    lock.release()
+    #hier wird der I2C ausgelesen
+    lock.acquire()
+    num_threads -= 1
+    lock.release()
+    
+    return accdata
+    
+def read_byte(reg):
+    return bus.read_byte_data(address, reg)
+
+def get_median(l):
+	global Q
+	Q.pop()
+	Q.appendleft(l)
+	med = []
+	for elem in Q:
+		med.append(elem)			
+	return np.median(med)
+
+def read_word(reg):
+    h = bus.read_byte_data(address, reg)
+    l = bus.read_byte_data(address, reg+1)
+    value = (h << 8) + l
+    return value
+ 
+def read_word_2c(reg):
+    val = read_word(reg)
+    if (val >= 0x8000):
+        return -((65535 - val) + 1)
+    else:
+        return val
+ 
+def dist(a,b):
+    return math.sqrt((a*a)+(b*b))
+ 
+def get_y_rotation(x,y,z):
+    radians = math.atan2(x, dist(y,z))
+    return -math.degrees(radians)
+ 
+def get_x_rotation(x,y,z):
+    radians = math.atan2(y, dist(x,z))
+    return math.degrees(radians)
+
+#END FUNCTIONS FOR I2C----------------------------------------------------------
 
 def set_motor_dutycycle(x):
 	global RUNNING_ON_PI
