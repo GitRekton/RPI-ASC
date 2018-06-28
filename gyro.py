@@ -83,7 +83,6 @@ while True:
     beschleunigung_xout_skaliert = beschleunigung_xout / 16384.0
     beschleunigung_yout_skaliert = beschleunigung_yout / 16384.0
     beschleunigung_zout_skaliert = beschleunigung_zout / 16384.0
-    print beschleunigung_xout, get_median(beschleunigung_xout)
     print "beschleunigung_xout: ", ("%6d" % beschleunigung_xout), " skaliert: ", beschleunigung_xout_skaliert
     print "beschleunigung_yout: ", ("%6d" % beschleunigung_yout), " skaliert: ", beschleunigung_yout_skaliert
     print "beschleunigung_zout: ", ("%6d" % beschleunigung_zout), " skaliert: ", beschleunigung_zout_skaliert
