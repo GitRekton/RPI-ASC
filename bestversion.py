@@ -2,11 +2,20 @@ import cv2
 import numpy as np
 import time
 import math
+import pigpio
 from collections import deque
 
 time.sleep(0.3)
-
+pi = pigpio.pi()
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+time.sleep(0.3)
+camera = PiCamera()
+camera.resolution = (640, 480) #640,480
+camera.framerate = 60#
+rawCapture = PiRGBArray(camera, size=(640, 480))
 lines = None
+set_motor_dutycycle(0)	#Sicherstellen, dass das Auto am Anfang still steht
 
 #FLAGS
 RUNNING_ON_PI = True	#Abhaengig von der aktuellen Laufzeitumgebung
@@ -31,23 +40,6 @@ def activate_beeper(x):					# Parameter: 1 = An; 0 = Aus
 		else:
 			pi.set_PWM_dutycycle(18, 0)
 
-
-import pigpio
-time.sleep(0.3)
-pi = pigpio.pi()
-from picamera.array import PiRGBArray
-from picamera import PiCamera
-time.sleep(0.3)
-camera = PiCamera()
-camera.resolution = (640, 480) #640,480
-camera.framerate = 60#
-rawCapture = PiRGBArray(camera, size=(640, 480))
-
-lines = None
-
-time.sleep(0.2)
-
-set_motor_dutycycle(0)	#Sicherstellen, dass das Auto am Anfang still steht
 
 for i in range(4):
         activate_beeper(1)
