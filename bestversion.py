@@ -24,19 +24,19 @@ pi.set_PWM_dutycycle(12, 0)	#Sicherstellen, dass das Auto am Anfang still steht
 
 #FLAGS
 RUNNING_ON_PI = True	#Abhaengig von der aktuellen Laufzeitumgebung
-MOTOR_ACTIVE = False
-BEEPER_ACTIVE = False
-THREAD_STARTED = False
+MOTOR_ACTIVE = False	#Debugvariable- aktiviert den Motor, während Debug ausgeschaltet
+BEEPER_ACTIVE = False	#Debugvariable- aktiviert den Beeper, während Debug ausgeschaltet
+THREAD_STARTED = False	#Flag für Mutlithreading
 
-lock = allocate_lock()
-Q = deque(4*[0], 4)
+lock = allocate_lock()		#ermöglicht eine Atomare Operation während des Inits der Multithreading
+Q = deque(4*[0], 4)		#Größe des Schieberegisters, welches als Filter fungiert. Mittelwert des Registers = aktuelelr abstand zur nächsten Kurve
 ###THREADING
-num_threads = 0
+num_threads = 0			#Thread counter
 
-# FUNCTIONS FOR I2C------------------------------------------------------------
+# FUNCTIONS FOR I2C-#######################FUNCTIONS FOR I2C-#######################FUNCTIONS FOR I2C-#######################FUNCTIONS FOR I2C-#######################
 # Register
-power_mgmt_1 = 0x6b
-power_mgmt_2 = 0x6c
+power_mgmt_1 = 0x6b	#i2c adresse
+power_mgmt_2 = 0x6c	#i2c adresse
 
 bus = smbus.SMBus(1) # bus = smbus.SMBus(0) fuer Revision 1
 address = 0x68       # via i2cdetect
@@ -47,10 +47,10 @@ bus.write_byte_data(address, power_mgmt_1, 0)
 #Thread um daten aus Sensor auszulesen
 def get_acc_data(x):
     global num_threads, THREAD_STARTED
-    lock.acquire()
+    lock.acquire()								#hier wird atomare Operation gestartet, um die nächsten Zeilen "in einem Rutsch" auszuführen
     num_threads += 1
     THREAD_STARTED = True
-    lock.release()
+    lock.release()								#hier endet die Atomare Operation.
     #hier wird der I2C ausgelesen
     while True:
         beschleunigung_xout = read_word_2c(0x3b)
@@ -66,7 +66,7 @@ def get_acc_data(x):
     lock.acquire()
     num_threads -= 1
     lock.release()
-    
+	    
     return None
     
 def read_byte(reg):
@@ -105,7 +105,7 @@ def get_x_rotation(x,y,z):
     radians = math.atan2(y, dist(x,z))
     return math.degrees(radians)
 
-#END FUNCTIONS FOR I2C----------------------------------------------------------
+#END FUNCTIONS FOR I2C######################END FUNCTIONS FOR I2C######################END FUNCTIONS FOR I2C######################END FUNCTIONS FOR I2C######################
 
 def set_motor_dutycycle(x):
 	global RUNNING_ON_PI
@@ -289,41 +289,13 @@ if __name__ == "__main__":
 #	init()
 	l = 0
 	perf = []
-	if RUNNING_ON_PI == True:
-            start_new_thread(get_acc_data, (None,))
-            for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-                    start1 = time.time()		
-                    image_src = frame.array
-                    end1 = time.time()
-
-                    start2 = time.time()
-                    image_src = image_proc(image_src)
-                    end2 = time.time()
-                    
-                    start3 = time.time()
-                    l = trs(image_src)
-                    end3 = time.time()
-                    #out.write(image_src)
-
-                    start4 = time.time()
-                    image_display(image_src,lines, l) #cap,l
-                    end4 = time.time()
-                    rawCapture.truncate(0)      
-                    bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
-                    perf.append(bla)
-                    print np.median(perf)
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                            set_motor_dutycycle(0)
-                            #cap.release()
-        #			cv2.destroyAllWindows()
-                            break 	
-        else:
-            cap = cv2.VideoCapture('2018_06_20_2.h264')
-            while True:
+	if RUNNING_ON_PI == True:																#Dieser Block wird ausgeführt wenn das Programm von der Kamera Video beziehen soll
+		start_new_thread(get_acc_data, (None,))
+        for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
                 start1 = time.time()		
-                ret, image_src = cap.read()
+                image_src = frame.array
                 end1 = time.time()
-                
+
                 start2 = time.time()
                 image_src = image_proc(image_src)
                 end2 = time.time()
@@ -331,15 +303,44 @@ if __name__ == "__main__":
                 start3 = time.time()
                 l = trs(image_src)
                 end3 = time.time()
+                #out.write(image_src)
 
-    		start4 = time.time()
-    		image_display(image_src,lines, l) #cap,l
-    		end4 = time.time()     
-    		bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
+                start4 = time.time()
+                image_display(image_src,lines, l) #cap,l
+                end4 = time.time()
+                rawCapture.truncate(0)      
+                bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
                 perf.append(bla)
                 print np.median(perf)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                         set_motor_dutycycle(0)
                         #cap.release()
-#			cv2.destroyAllWindows()
+    #			cv2.destroyAllWindows()
                         break 	
+	else:					#Dieser Block wird ausgeführt, wenn das Programm von einer Datei das Video lesen soll
+		cap = cv2.VideoCapture('2018_06_20_2.h264')
+			while True:
+		        start1 = time.time()		
+		        ret, image_src = cap.read()
+		        end1 = time.time()
+		        
+		        start2 = time.time()
+		        image_src = image_proc(image_src)
+		        end2 = time.time()
+		        
+		        start3 = time.time()
+		        l = trs(image_src)
+		        end3 = time.time()
+
+				start4 = time.time()
+				image_display(image_src,lines, l) #cap,l
+				end4 = time.time()     
+			
+				bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
+		        perf.append(bla)
+		        print np.median(perf)
+		        if cv2.waitKey(1) & 0xFF == ord('q'):
+		                set_motor_dutycycle(0)
+		                #cap.release()
+	#			cv2.destroyAllWindows()
+		                break 	
