@@ -9,20 +9,22 @@ time.sleep(0.3)
 lines = None
 
 #FLAGS
-RUNNING_ON_PI = False	#Abhaengig von der aktuellen Laufzeitumgebung
+RUNNING_ON_PI = True	#Abhaengig von der aktuellen Laufzeitumgebung
+MOTOR_ACTIVE = False
+BEEPER_ACTIVE = False
 
 Q = deque(4*[0], 4)
 
 def set_motor_dutycycle(x):
 	global RUNNING_ON_PI
-	if RUNNING_ON_PI == True:
+	if RUNNING_ON_PI == True and MOTOR_ACTIVE == True:
 		pi.set_PWM_dutycycle(12, x)
 	else:
 		pass
 
 def activate_beeper(x):					# Parameter: 1 = An; 0 = Aus
 	global RUNNING_ON_PI
-	if RUNNING_ON_PI == True:
+	if RUNNING_ON_PI == True and BEEPER_ACTIVE == True:
 		global pi
 		if x == 1:
 			pi.set_PWM_dutycycle(18, 120)
