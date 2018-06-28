@@ -5,6 +5,7 @@ import math
 import pigpio
 from collections import deque
 from thread import start_new_thread, allocate_lock
+import smbus
 
 #-------INIT--------------------------------------------
 time.sleep(0.3)
@@ -17,7 +18,7 @@ camera.resolution = (640, 480) #640,480
 camera.framerate = 60#
 rawCapture = PiRGBArray(camera, size=(640, 480))
 lines = None
-set_motor_dutycycle(0)	#Sicherstellen, dass das Auto am Anfang still steht
+pi.set_PWM_dutycycle(12, 0)	#Sicherstellen, dass das Auto am Anfang still steht
 
 
 
@@ -29,30 +30,49 @@ THREAD_STARTED = False
 
 lock = allocate_lock()
 Q = deque(4*[0], 4)
+###THREADING
+num_threads = 0
 
 # FUNCTIONS FOR I2C------------------------------------------------------------
 # Register
 power_mgmt_1 = 0x6b
 power_mgmt_2 = 0x6c
 
+bus = smbus.SMBus(1) # bus = smbus.SMBus(0) fuer Revision 1
+address = 0x68       # via i2cdetect
+ 
+# Aktivieren, um das Modul ansprechen zu koennen
+bus.write_byte_data(address, power_mgmt_1, 0)
+
 #Thread um daten aus Sensor auszulesen
-def get_acc_data():
+def get_acc_data(x):
     global num_threads, THREAD_STARTED
     lock.acquire()
     num_threads += 1
     THREAD_STARTED = True
     lock.release()
     #hier wird der I2C ausgelesen
+    while True:
+        beschleunigung_xout = read_word_2c(0x3b)
+        beschleunigung_yout = read_word_2c(0x3d)
+        beschleunigung_zout = read_word_2c(0x3f)
+        beschleunigung_xout_skaliert = beschleunigung_xout / 16384.0
+        beschleunigung_yout_skaliert = beschleunigung_yout / 16384.0
+        beschleunigung_zout_skaliert = beschleunigung_zout / 16384.0
+        print "beschleunigung_xout: ", ("%6d" % beschleunigung_xout), " skaliert: ", beschleunigung_xout_skaliert
+        print "beschleunigung_yout: ", ("%6d" % beschleunigung_yout), " skaliert: ", beschleunigung_yout_skaliert
+        print "beschleunigung_zout: ", ("%6d" % beschleunigung_zout), " skaliert: ", beschleunigung_zout_skaliert
+        time.sleep(10)
     lock.acquire()
     num_threads -= 1
     lock.release()
     
-    return accdata
+    return None
     
 def read_byte(reg):
     return bus.read_byte_data(address, reg)
 
-def get_median(l):
+def get_median1(l):
 	global Q
 	Q.pop()
 	Q.appendleft(l)
@@ -270,6 +290,7 @@ if __name__ == "__main__":
 	l = 0
 	perf = []
 	if RUNNING_ON_PI == True:
+            start_new_thread(get_acc_data, (None,))
             for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
                     start1 = time.time()		
                     image_src = frame.array
