@@ -208,7 +208,8 @@ def image_proc(image_src):
         #					  Zeilen, 	Spalten
         #		[Horizont:Motorhaube, links:rechts]
         image_src = image_src[image_src.shape[0] * 0.41:image_src.shape[0], image_src.shape[1] * 0.4:image_src.shape[1] * 0.59]	# [200:400, 250:300]	
-        #image_src = cv2.GaussianBlur(image_src, (5,5), 0)
+
+        image_src = cv2.GaussianBlur(image_src, (3,3), 0)
         #image_src = cv2.Laplacian(image_src, cv2.CV_8U)	
         #image_src = cv2.resize(image_src, (0,0), image_src, fx=0.7, fy=0.7)
         
@@ -216,7 +217,8 @@ def image_proc(image_src):
     #Image Threshold
         #image_src2 = cv2.inRange(image_src, np.array([H_low,S_low,V_low]),np.array([H_high,S_high,V_high]))
         #image_src = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=7)
-        image_src = cv2.adaptiveThreshold(image_src, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY, 7, 4)	
+        image_src = cv2.adaptiveThreshold(image_src, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY, 7, 4)
+        image_src = np.invert(image_src)
         #image_src = cv2.Canny(image_src, 100, 150)
         return image_src
 
@@ -234,7 +236,7 @@ def trs(image_src):
 	l, l_med = 0,0
 	
 	#			image, -, -, threshold, maxLineGap, minLineLenght, 
-	lines = cv2.HoughLinesP(image_src,1, np.pi, 150, 20, 60) # 2, 60)
+	lines = cv2.HoughLinesP(image_src,1, np.pi/2, 10, 20, 60) # 2, 60)
 	if lines is not None:
 		for line in lines:
 			try:
@@ -284,6 +286,7 @@ def image_display(image_src, lines,l):#l
 		cv2.putText(image_src, str(l) , (3,30), font, 0.5, (255,255,255), 2, 0)
 			
 	if image_src is not None:
+                #image_src = imutils.resize(image_src, width=400)
 		cv2.imshow('image_src', image_src)
 		cv2.moveWindow('image_src', 700, 700)
 
