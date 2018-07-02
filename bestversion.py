@@ -14,6 +14,7 @@ import smbus
 #-------INIT--------------------------------------------
 time.sleep(0.3)
 pi = pigpio.pi()
+
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 from imutils.video import FPS
@@ -40,6 +41,11 @@ THREAD_STARTED = False	#Flag fuer Mutlithreading
 
 lock = allocate_lock()		#ermoeglicht eine Atomare Operation waehrend des Inits der Multithreading
 Q = deque(4*[0], 4)		#Groesse des Schieberegisters, welches als Filter fungiert. Mittelwert des Registers = aktuelelr abstand zur naechsten Kurve
+print "Init Queue"
+Q_line0 = deque(4*[0], 4)
+Q_line1 = deque(4*[0], 4)
+Q_line2 = deque(4*[0], 4)
+Q_line3 = deque(4*[0], 4)
 ###THREADING
 num_threads = 0			#Thread counter
 
@@ -208,7 +214,6 @@ def image_proc(image_src):
         #					  Zeilen, 	Spalten
         #		[Horizont:Motorhaube, links:rechts]
         image_src = image_src[image_src.shape[0] * 0.41:image_src.shape[0], image_src.shape[1] * 0.4:image_src.shape[1] * 0.59]	# [200:400, 250:300]	
-
         image_src = cv2.GaussianBlur(image_src, (3,3), 0)
         #image_src = cv2.Laplacian(image_src, cv2.CV_8U)	
         #image_src = cv2.resize(image_src, (0,0), image_src, fx=0.7, fy=0.7)
@@ -217,7 +222,7 @@ def image_proc(image_src):
     #Image Threshold
         #image_src2 = cv2.inRange(image_src, np.array([H_low,S_low,V_low]),np.array([H_high,S_high,V_high]))
         #image_src = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=7)
-        image_src = cv2.adaptiveThreshold(image_src, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY, 7, 4)
+        image_src = cv2.adaptiveThreshold(image_src, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 9, 2)
         image_src = np.invert(image_src)
         #image_src = cv2.Canny(image_src, 100, 150)
         return image_src
@@ -233,26 +238,45 @@ def get_median(l):
         return np.median(med)
 
 def trs(image_src):
-	l, l_med = 0,0
-	
+	l, l_med, line_counter = 0,0,0
 	#			image, -, -, threshold, maxLineGap, minLineLenght, 
 	lines = cv2.HoughLinesP(image_src,1, np.pi/2, 10, 20, 60) # 2, 60)
+	med_x1, med_x2, med_y1, med_y2 = 0,0,0,0
 	if lines is not None:
+
+                
+                x1, x2, y1, y2 = [],[],[],[]
 		for line in lines:
 			try:
 				coords = line[0]
-                                
+                                line_counter += 1
 				cv2.line(image_src, (coords[0], coords[1]), (coords[2], coords[3]), [100], 3)
-
+                                #x1 = get_median_line0(coords[0])
+				#x2 = get_median_line1(coords[1])
+				#y1 = get_median_line2(coords[2])
+				#y2 = get_median_line3(coords[3])
+				
 				#cv2.line(image_src, (coords[0], 240), (coords[2], coords[3]), [100], 7)
-
+                                x1.append(coords[0])
+                                x2.append(coords[1])
+                                y1.append(coords[2])
+                                y2.append(coords[3])
+                                
+                                
 				#cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
-				#print "x1, y1, x2, y2"
+				#print x1, y1, x2, y2
 				#print coords
 			except:
 			    	pass
+                #print x1 #= np.median(x1)
+                #print x2 #= np.median(x2)
+                #print y1 #= np.median(y1)
+                #print np.median(y2) #= np.median(y2)
+	
+	#print (med_x1, med_x2, med_y1, med_y2), "MEDIAN for 1 pic"
 	if lines is not None:
-		l = absolute(240 - coords[3])
+                #print line_counter, "line counter"
+		l = absolute(142 - np.median(y2))
 		l_med = get_median(l)
 		if l_med > 180:
 			set_motor_dutycycle(60)
@@ -265,7 +289,8 @@ def trs(image_src):
 			print l_med
 			activate_beeper(0)
 #		set_motor_dutycycle(speed)
-                #if RUNNING_ON_PI == False:
+                if RUNNING_ON_PI == False:
+                    cv2.line(image_src, (int(med_x1), int(med_x2)), (int(med_y1), int(med_y2)), [160], 20)
                     #cv2.line(image_src, (coords[0], 240), (coords[0], 240 - int(l_med)), [100], 20)
                     #cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
 
@@ -287,8 +312,48 @@ def image_display(image_src, lines,l):#l
 			
 	if image_src is not None:
                 #image_src = imutils.resize(image_src, width=400)
+		#cv2.namedWindow('image_src', WINDOW_NORMAL)
 		cv2.imshow('image_src', image_src)
+		
+		
 		cv2.moveWindow('image_src', 700, 700)
+        
+        
+def get_median_line0(l):
+	global Q_line0
+	Q_line0.pop()
+	Q_line0.appendleft(l)
+	med0 = []
+	for elem in Q:
+		med0.append(elem)			
+	return np.median(med0)
+
+def get_median_line1(l):
+	global Q_line1
+	Q_line1.pop()
+	Q_line1.appendleft(l)
+	med1 = []
+	for elem in Q:
+		med1.append(elem)			
+	return np.median(med1)
+
+def get_median_line2(l):
+	global Q_line2
+	Q_line2.pop()
+	Q_line2.appendleft(l)
+	med2 = []
+	for elem in Q:
+		med2.append(elem)			
+	return np.median(med2)
+
+def get_median_line3(l):
+	global Q_line3
+	Q_line3.pop()
+	Q_line3.appendleft(l)
+	med3 = []
+	for elem in Q:
+		med3.append(elem)			
+	return np.median(med3)
 
 if __name__ == "__main__":
         print("[INFO] Init Cam")
