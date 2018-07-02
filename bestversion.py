@@ -20,12 +20,12 @@ from imutils.video import FPS
 from imutils.video.pivideostream import PiVideoStream
 time.sleep(0.3)
 
+
 camera = PiCamera()
-camera.resolution = (320, 240)
+camera.resolution = (480, 640)
 camera.framerate = 32
-rawCapture = PiRGBArray(camera, size=(320, 240))
-stream = camera.capture_continuous(rawCapture, format="bgr",
-	use_video_port=True)
+rawCapture = PiRGBArray(camera, size=(480, 640))
+stream = camera.capture_continuous(rawCapture, format="bgr",use_video_port=True)
 
 lines = None
 pi.set_PWM_dutycycle(12, 0)	#Sicherstellen, dass das Auto am Anfang still steht
@@ -202,16 +202,16 @@ def image_proc(image_src):
         image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)	#LaneTracking
         #image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2HSV) #LaneSideTracking with ColorFilter     
     #Image Crop
-        #640, 480
-        #print image_src.shape
+        #320,240
+        print image_src.shape
         #					  Zeilen, 	Spalten
         #		[Horizont:Motorhaube, links:rechts]
-        image_src = image_src[180:420, 180:430]	# [200:400, 250:300]	
+        image_src = image_src[30:240, 60:270]	# [200:400, 250:300]	
         #image_src = cv2.resize(image_src, (0,0), image_src, fx=0.7, fy=0.7)
     
     #Image Threshold
         #image_src2 = cv2.inRange(image_src, np.array([H_low,S_low,V_low]),np.array([H_high,S_high,V_high]))
-        image_src = cv2.adaptiveThreshold(image_src, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 11, 2)	
+        image_src = cv2.adaptiveThreshold(image_src, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY, 11, 2)	
 
         return image_src
 
@@ -317,7 +317,7 @@ if __name__ == "__main__":
         # and start the FPS counter
         print("[INFO] sampling THREADED frames from `picamera` module...")
         vs = PiVideoStream().start()
-        time.sleep(2.0)
+        time.sleep(1.0)
         fps = FPS().start()
         l = 0
         # loop over some frames...this time using the threaded stream
