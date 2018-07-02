@@ -30,10 +30,10 @@ stream = camera.capture_continuous(rawCapture, format="bgr",use_video_port=True)
 lines = None
 pi.set_PWM_dutycycle(12, 0)	#Sicherstellen, dass das Auto am Anfang still steht
 #stream = PiVideoStream().start()
-time.sleep(2)
+
 
 #FLAGS
-RUNNING_ON_PI = True	#Abhaengig von der aktuellen Laufzeitumgebung
+RUNNING_ON_PI = False	#Abhaengig von der aktuellen Laufzeitumgebung
 MOTOR_ACTIVE = False	#Debugvariable- aktiviert den Motor, waehrend Debug ausgeschaltet
 BEEPER_ACTIVE = False	#Debugvariable- aktiviert den Beeper, waehrend Debug ausgeschaltet
 THREAD_STARTED = False	#Flag fuer Mutlithreading
@@ -200,19 +200,24 @@ def cv_img_gradient(image_src):
 def image_proc(image_src):
     #Image Colorspace
         image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)	#LaneTracking
-        #image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2HSV) #LaneSideTracking with ColorFilter     
+        #image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2HSV) #LaneSideTracking with ColorFilter
+
     #Image Crop
         #320,240
-        print image_src.shape
+        #print image_src.shape[0]
         #					  Zeilen, 	Spalten
         #		[Horizont:Motorhaube, links:rechts]
-        image_src = image_src[30:240, 60:270]	# [200:400, 250:300]	
+        image_src = image_src[image_src.shape[0] * 0.41:image_src.shape[0], image_src.shape[1] * 0.4:image_src.shape[1] * 0.59]	# [200:400, 250:300]	
+        #image_src = cv2.GaussianBlur(image_src, (5,5), 0)
+        #image_src = cv2.Laplacian(image_src, cv2.CV_8U)	
         #image_src = cv2.resize(image_src, (0,0), image_src, fx=0.7, fy=0.7)
+        
     
     #Image Threshold
         #image_src2 = cv2.inRange(image_src, np.array([H_low,S_low,V_low]),np.array([H_high,S_high,V_high]))
-        image_src = cv2.adaptiveThreshold(image_src, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY, 11, 2)	
-
+        #image_src = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=7)
+        image_src = cv2.adaptiveThreshold(image_src, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY, 7, 4)	
+        #image_src = cv2.Canny(image_src, 100, 150)
         return image_src
 
 
@@ -227,13 +232,15 @@ def get_median(l):
 
 def trs(image_src):
 	l, l_med = 0,0
+	
 	#			image, -, -, threshold, maxLineGap, minLineLenght, 
-	lines = cv2.HoughLinesP(image_src,1, np.pi, 160, 70, 100) # 2, 60)
+	lines = cv2.HoughLinesP(image_src,1, np.pi, 150, 20, 60) # 2, 60)
 	if lines is not None:
 		for line in lines:
 			try:
 				coords = line[0]
-				#cv2.line(image_src, (coords[0], coords[1]), (coords[2], coords[3]), [255], 7)
+                                
+				cv2.line(image_src, (coords[0], coords[1]), (coords[2], coords[3]), [100], 3)
 
 				#cv2.line(image_src, (coords[0], 240), (coords[2], coords[3]), [100], 7)
 
@@ -256,9 +263,9 @@ def trs(image_src):
 			print l_med
 			activate_beeper(0)
 #		set_motor_dutycycle(speed)
-                if RUNNING_ON_PI == False:
-                    cv2.line(image_src, (coords[0], 240), (coords[0], 240 - int(l_med)), [100], 20)
-                    cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
+                #if RUNNING_ON_PI == False:
+                    #cv2.line(image_src, (coords[0], 240), (coords[0], 240 - int(l_med)), [100], 20)
+                    #cv2.line(image_src, (0, 240 - int(l_med)),(250,240 - int(l_med)), [100], 9) 
 
 	else:
 		speed = 60
@@ -348,8 +355,8 @@ if __name__ == "__main__":
 		        image_display(image_src,lines, l) #cap,l
 		        end4 = time.time()
 		        #rawCapture.truncate(0)      
-		        bla = (end2-start2)*1000+(end3-start3)*1000
-		        perf.append(bla)
+		        #bla = (end2-start2)*1000+(end3-start3)*1000
+		        #perf.append(bla)
 		        print np.median(perf)
 		        
 		        if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -361,12 +368,12 @@ if __name__ == "__main__":
 		        fps.update()
 		        
 	else:					#Dieser Block wird ausgefuehrt, wenn das Programm von einer Datei das Video lesen soll
-                cap = cv2.VideoCapture('2018_06_20_2.h264')
+                cap = cv2.VideoCapture('2018_07_02_1.h264')
 		while True:
 			start1 = time.time()		
 			ret, image_src = cap.read()
 			end1 = time.time()
-			
+			cv2.imshow("test", image_src)
 			start2 = time.time()
 			image_src = image_proc(image_src)
 			end2 = time.time()
@@ -379,10 +386,10 @@ if __name__ == "__main__":
 			image_display(image_src,lines, l) #cap,l
 			end4 = time.time()     
 	
-			bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
-			perf.append(bla)
-			print np.median(perf)
-			if cv2.waitKey(1) & 0xFF == ord('q'):
+			#bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
+			#perf.append(bla)
+			#print np.median(perf)
+			if cv2.waitKey(60) & 0xFF == ord('q'):
 			        set_motor_dutycycle(0)
 			        #cap.release()
 	#			cv2.destroyAllWindows()
