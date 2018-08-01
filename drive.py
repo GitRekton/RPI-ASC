@@ -9,4 +9,4 @@ parser.add_argument("speed", help="adjust the car speed",type=int)
 args = parser.parse_args()
 
 pi = pigpio.pi()
-pi.set_PWM_dutycycle(12, args.speed)
+pi.set_PWM_dutycycle(18, args.speed)
