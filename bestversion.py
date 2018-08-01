@@ -34,7 +34,7 @@ pi.set_PWM_dutycycle(12, 0)	#Sicherstellen, dass das Auto am Anfang still steht
 
 
 #FLAGS
-RUNNING_ON_PI = False	#Abhaengig von der aktuellen Laufzeitumgebung
+RUNNING_ON_PI = True	#Abhaengig von der aktuellen Laufzeitumgebung
 MOTOR_ACTIVE = False	#Debugvariable- aktiviert den Motor, waehrend Debug ausgeschaltet
 BEEPER_ACTIVE = False	#Debugvariable- aktiviert den Beeper, waehrend Debug ausgeschaltet
 THREAD_STARTED = False	#Flag fuer Mutlithreading
@@ -213,7 +213,8 @@ def image_proc(image_src):
         #print image_src.shape[0]
         #					  Zeilen, 	Spalten
         #		[Horizont:Motorhaube, links:rechts]
-        image_src = image_src[image_src.shape[0] * 0.41:image_src.shape[0], image_src.shape[1] * 0.4:image_src.shape[1] * 0.59]	# [200:400, 250:300]	
+        #image_src = image_src[int(image_src.shape[0] * 0.41):int(image_src.shape[0]), image_src.shape[1] * 0.4:image_src.shape[1] * 0.59]	# [200:400, 250:300]
+        image_src = image_src[140:260, 120:240]
         image_src = cv2.GaussianBlur(image_src, (3,3), 0)
         #image_src = cv2.Laplacian(image_src, cv2.CV_8U)	
         #image_src = cv2.resize(image_src, (0,0), image_src, fx=0.7, fy=0.7)
@@ -282,11 +283,11 @@ def trs(image_src):
 			set_motor_dutycycle(60)
 			#speed = (0.5 * l_med)
 			activate_beeper(1)
-			print l_med
+			#print l_med
 		elif l_med < 180:
 			set_motor_dutycycle(60)
 			#speed = (0.2 * l_med)
-			print l_med
+			#print l_med
 			activate_beeper(0)
 #		set_motor_dutycycle(speed)
                 if RUNNING_ON_PI == False:
@@ -296,7 +297,7 @@ def trs(image_src):
 
 	else:
 		speed = 60
-		print 0
+		#print 0
 		set_motor_dutycycle(speed)
 		activate_beeper(0)
 	return l_med
@@ -406,10 +407,11 @@ if __name__ == "__main__":
 		##start_new_thread(get_acc_data, (None,))
 		#for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
 		while True:        
-		        	
+		        start1 = time.time()
 		        #image_src = frame.array
                         image_src = vs.read()
                         cv2.imshow("Frame", image_src)
+                        end1 = time.time()
 		        start2 = time.time()
 		        image_src = image_proc(image_src)
 		        end2 = time.time()
@@ -423,9 +425,8 @@ if __name__ == "__main__":
 		        image_display(image_src,lines, l) #cap,l
 		        end4 = time.time()
 		        #rawCapture.truncate(0)      
-		        #bla = (end2-start2)*1000+(end3-start3)*1000
-		        #perf.append(bla)
-		        print np.median(perf)
+		        bla = (end2-start2)*1000+(end3-start3)*1000
+		        print (end1 - start1)*1000, "," , (end2-start2)*1000, "," , (end3-start3)*1000
 		        
 		        if cv2.waitKey(1) & 0xFF == ord('q'):
                                 set_motor_dutycycle(0)
@@ -454,10 +455,10 @@ if __name__ == "__main__":
 			image_display(image_src,lines, l) #cap,l
 			end4 = time.time()     
 	
-			#bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
-			#perf.append(bla)
-			#print np.median(perf)
-			if cv2.waitKey(60) & 0xFF == ord('q'):
+			bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
+			perf.append(bla)
+			print np.median(perf)
+			if cv2.waitKey(1) & 0xFF == ord('q'):
 			        set_motor_dutycycle(0)
 			        #cap.release()
 	#			cv2.destroyAllWindows()
