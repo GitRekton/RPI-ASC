@@ -7,6 +7,7 @@ from collections import deque
 from thread import start_new_thread, allocate_lock
 import smbus
 
+
 #from __future__ import print_function
 #from imutils.video.pivideostream import PiVideoStream
 #from imutils.video import FPS
@@ -57,15 +58,16 @@ num_threads = 0			#Thread counter
 power_mgmt_1 = 0x6b	#i2c adresse
 power_mgmt_2 = 0x6c	#i2c adresse
 
-#bus = smbus.SMBus(1) # bus = smbus.SMBus(0) fuer Revision 1
+bus = smbus.SMBus(1) # bus = smbus.SMBus(0) fuer Revision 1
 address = 0x68       # via i2cdetect
  
 # Aktivieren, um das Modul ansprechen zu koennen
 #bus.write_byte_data(address, power_mgmt_1, 0)
 
 #Thread um daten aus Sensor auszulesen
+acc_data = [0,0,0,0,0,0]
 def get_acc_data(x):
-        global num_threads, THREAD_STARTED
+        global acc_data, num_threads, THREAD_STARTED
         lock.acquire()								#hier wird atomare Operation gestartet, um die naechsten Zeilen "in einem Rutsch" auszufuehren
         num_threads += 1
         THREAD_STARTED = True
@@ -75,13 +77,21 @@ def get_acc_data(x):
                 beschleunigung_xout = read_word_2c(0x3b)
                 beschleunigung_yout = read_word_2c(0x3d)
                 beschleunigung_zout = read_word_2c(0x3f)
+                gyroskop_xout = read_word_2c(0x43)
+                gyroskop_yout = read_word_2c(0x45)
+                gyroskop_zout = read_word_2c(0x47)
                 beschleunigung_xout_skaliert = beschleunigung_xout / 16384.0
                 beschleunigung_yout_skaliert = beschleunigung_yout / 16384.0
                 beschleunigung_zout_skaliert = beschleunigung_zout / 16384.0
+                gyroskop_xout = gyroskop_xout / 131
+                gyroskop_yout = gyroskop_yout / 131
+                gyroskop_zout = gyroskop_zout / 131
                 #print "beschleunigung_xout: ", ("%6d" % beschleunigung_xout), " skaliert: ", beschleunigung_xout_skaliert
                 #print "beschleunigung_yout: ", ("%6d" % beschleunigung_yout), " skaliert: ", beschleunigung_yout_skaliert
                 #print "beschleunigung_zout: ", ("%6d" % beschleunigung_zout), " skaliert: ", beschleunigung_zout_skaliert
-                time.sleep(10)
+                print beschleunigung_xout_skaliert,",", beschleunigung_yout_skaliert,",", beschleunigung_zout_skaliert,",", gyroskop_xout,",", gyroskop_yout,",", gyroskop_zout
+                acc_data = [beschleunigung_xout_skaliert, beschleunigung_yout_skaliert, beschleunigung_zout_skaliert, gyroskop_xout, gyroskop_yout, gyroskop_zout]
+                time.sleep(0.005)
         lock.acquire()
         num_threads -= 1
         lock.release()    
@@ -153,31 +163,88 @@ def absolute(x):
 
 def nothing(x):
 	pass
-
+def draw_grid(image_src):  #Funktion um Gitternetzlinien auf Bild zu zeichnen
+        i = 0
+        while i < 640:
+                cv2.line(image_src, (i,0),(i,image_src.shape[0]), [100], 2)
+                i += 25
+        j = 0
+        while j < 480:
+                cv2.line(image_src, (0,j),(image_src.shape[1],j), [100], 2)
+                j += 25
+        return image_src
+    
 def image_proc(image_src):
     #Image Colorspace
-        image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)	#LaneTracking
-        #image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2HSV) #LaneSideTracking with ColorFilter
-
-    #Image Crop
+                            #[240:480,0:640]
+        
+        image_src = image_src[240:400,0:640]
+        
+         #LaneSideTracking with ColorFilter
+        #h,s,v = cv2.split(image_src_hsv)
+        #image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)
+#        cv2.imshow("cropped", image_src)
+        
+        hue_t = cv2.getTrackbarPos("HUE_top", "slider") #180
+        sat_t = cv2.getTrackbarPos("SATURATION_top", "slider") #13
+        val_t = cv2.getTrackbarPos("VALUE_top", "slider") #255
+        
+        hue_b = cv2.getTrackbarPos("HUE_bot", "slider") #0
+        sat_b = cv2.getTrackbarPos("SATURATION_bot", "slider") #0
+        val_b = cv2.getTrackbarPos("VALUE_bot", "slider")   #193
+        
+        upper_white = (hue_t, sat_t, val_t)
+        lower_white = (hue_b, sat_b, val_b)
+        
+        
+        
+        
+        #Transformation
+        src = np.float32([[0,160], [0,0],[640,0],[640,160]])
+        dst = np.float32([[280,160], [0,0],[640,0],[360,160]])
+        M = cv2.getPerspectiveTransform(src, dst)
+        
+        top_view = cv2.warpPerspective(image_src,  M, (640,160))
+        top_view = top_view[:,260:380]
+        
+        top_view = cv2.resize(top_view, None, fx = 2, fy = 2, interpolation = cv2.INTER_CUBIC)
+#        cv2.imshow("Top View", top_view)
+        #cv2.imshow("straight", image_src_straight)
+        
+        #top_view = cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 9, 2)
+        #top_view = np.invert(top_view)
+        
+        #top_view = cv2.GaussianBlur(top_view, (3,3), 0)
+        #image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)	#LaneTracking
+        top_view = cv2.cvtColor(top_view, cv2.COLOR_BGR2HSV)
+        top_view = cv2.inRange(top_view, lower_white, upper_white)
+        
+        #top_view = cv2.inRange(top_view, 200, 255)
+#        cv2.imshow("hsv", top_view)
+        #Image Crop
         #320,240
         #print image_src.shape[0]
         #					  Zeilen, 	Spalten
         #		[Horizont:Motorhaube, links:rechts]
         #image_src = image_src[int(image_src.shape[0] * 0.41):int(image_src.shape[0]), image_src.shape[1] * 0.4:image_src.shape[1] * 0.59]	# [200:400, 250:300]
         #image_src = image_src[140:260, 120:240]
-        image_src = cv2.GaussianBlur(image_src, (3,3), 0)
+        
         #image_src = cv2.Laplacian(image_src, cv2.CV_8U)	
         #image_src = cv2.resize(image_src, (0,0), image_src, fx=0.7, fy=0.7)
         
     
-    #Image Threshold
+        #Image Threshold
+        #top_view = cv2.Canny(top_view, 100, 150)
         #image_src2 = cv2.inRange(image_src, np.array([H_low,S_low,V_low]),np.array([H_high,S_high,V_high]))
-        #image_src = cv2.Sobel(image_src, cv2.CV_8U, 1, 0, ksize=7)
-        image_src = cv2.adaptiveThreshold(image_src, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 9, 2)
-        image_src = np.invert(image_src)
-        #image_src = cv2.Canny(image_src, 100, 150)
-        return image_src
+        #top_view = cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=7)
+        #image_src_straight = cv2.adaptiveThreshold(image_src_straight, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY, 9, 2)
+        #image_src_straight = np.invert(image_src_straight)
+
+        #cv2.imshow("H", image_src_straight)
+        #cv2.imshow("Canny", image_src)
+        
+        
+        return top_view
 
 
 def get_median(l):
@@ -192,43 +259,53 @@ def get_median(l):
 def trs(image_src):
 	lines = 0
 	#			image, -, -, threshold, maxLineGap, minLineLenght, 
-	lines = cv2.HoughLinesP(image_src,1, np.pi/2, 10, 20, 60) # 2, 60)
+	lines = cv2.HoughLinesP(image_src,1, np.pi/2, 10, 2, 25) # 2, 60)
 	if lines is not None:
                 for line in lines:
                         try:
 				coords = line[0]
-                                cv2.line(image_src, (coords[0], coords[1]), (coords[2], coords[3]), [100], 3)
+        #                        cv2.line(image_src, (coords[0], coords[1]), (coords[2], coords[3]), [100], 3)
                         except:
                                 pass
         return 0
 
-def image_display(image_src, lines,l):#l
-        font = cv2.FONT_HERSHEY_SIMPLEX
-	cv2.putText(image_src, str(l), (3,30), font, 0.7, (120), 2, 0)
-	if lines is None:
-		cv2.putText(image_src, 'Curve', (3,30), font, 0.5, (255,255,255), 2, 0)
+def image_display(image_src):#l
+        #font = cv2.FONT_HERSHEY_SIMPLEX
+	#cv2.putText(image_src, str(l), (3,30), font, 0.7, (120), 2, 0)
+	#if lines is None:
+	#	cv2.putText(image_src, 'Curve', (3,30), font, 0.5, (255,255,255), 2, 0)
 			
-	else:
-		cv2.putText(image_src, str(l) , (3,30), font, 0.5, (255,255,255), 2, 0)
-			
+	#else:
+	#	cv2.putText(image_src, str(l) , (3,30), font, 0.5, (255,255,255), 2, 0)
+	
 	if image_src is not None:
                 #image_src = imutils.resize(image_src, width=400)
 		#cv2.namedWindow('image_src', WINDOW_NORMAL)
-		cv2.imshow('image_src', image_src)
+	#	cv2.imshow('image_src', image_src)
+		pass
 		
-		
-		cv2.moveWindow('image_src', 700, 700)
+	#	cv2.moveWindow('image_src', 700, 700)
 
 def undistort(img):
     h,w = img.shape[:2]
     map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
-    undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    cv2.imshow("undistorted", undistorted_img)
-    return 0
+    return cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+
+def init():
+    cv2.namedWindow("slider")
+    cv2.createTrackbar("HUE_top", "slider", 0, 180, nothing)
+    cv2.createTrackbar("SATURATION_top", "slider", 0, 255, nothing)
+    cv2.createTrackbar("VALUE_top", "slider", 0, 255, nothing)
+    
+    cv2.createTrackbar("HUE_bot", "slider", 0, 180, nothing)
+    cv2.createTrackbar("SATURATION_bot", "slider", 0, 255, nothing)
+    cv2.createTrackbar("VALUE_bot", "slider", 0, 255, nothing)
+    
 
 if __name__ == "__main__":
+        start_new_thread(get_acc_data, (None,))
         print("[INFO] Init Cam")
-        time.sleep(2.0)
+        time.sleep(1.0)
         fps = FPS().start()
         for (i, f) in enumerate(stream):
                 # grab the frame from the stream and resize it to have a maximum
@@ -238,7 +315,7 @@ if __name__ == "__main__":
          
                 # check to see if the frame should be displayed to our screen
                 
-                cv2.imshow("Frame", frame)
+#                cv2.imshow("Frame", frame)
                 key = cv2.waitKey(1) & 0xFF
          
                 # clear the stream in preparation for the next frame and update
@@ -268,37 +345,37 @@ if __name__ == "__main__":
         l = 0
         # loop over some frames...this time using the threaded stream
 	perf = []
-	if RUNNING_ON_PI == True:		        
+	#init()
+	if RUNNING_ON_PI == True:
+            
             while True:
             #cap = cv2.VideoCapture('2018_06_20_2.h264')
             #	frame_counter = 0	
             #	init()
 								#Dieser Block wird ausgefuehrt wenn das Programm von der Kamera Video beziehen soll
-		##start_new_thread(get_acc_data, (None,))
+		
 		#for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
 		while True:        
 		        start1 = time.time()
 		        #image_src = frame.array
                         image_src = vs.read()
-                        undistort(image_src)
-                        cv2.imshow("Frame", image_src)
+                        #undistort(image_src)
                         end1 = time.time()
 		        start2 = time.time()
 		        image_src = image_proc(image_src)
 		        end2 = time.time()
 		        
-		        print image_src.shape
 		        start3 = time.time()
-		        l = trs(image_src)
+		        #l = trs(image_src)
 		        end3 = time.time()
 		        #out.write(image_src)
 
 		        start4 = time.time()
-		        image_display(image_src,lines, l) #cap,l
+		        #image_display(image_src) #cap,l
 		        end4 = time.time()
 		        #rawCapture.truncate(0)      
-		        bla = (end2-start2)*1000+(end3-start3)*1000
-		        print (end1 - start1)*1000, "," , (end2-start2)*1000, "," , (end3-start3)*1000
+		        #bla = (end2-start2)*1000+(end3-start3)*1000
+		        #print (end1 - start1)*1000, "," , (end2-start2)*1000, "," , (end3-start3)*1000
 		        
 		        if cv2.waitKey(1) & 0xFF == ord('q'):
                                 set_motor_dutycycle(0)
@@ -309,12 +386,14 @@ if __name__ == "__main__":
 		        fps.update()
 		        
 	else:					#Dieser Block wird ausgefuehrt, wenn das Programm von einer Datei das Video lesen soll
-                cap = cv2.VideoCapture('2018_07_02_1.h264')
+                cap = cv2.VideoCapture('2018_08_02_1.h264')
 		while True:
 			start1 = time.time()		
 			ret, image_src = cap.read()
 			end1 = time.time()
-			cv2.imshow("test", image_src)
+			
+			image_src = undistort(image_src)
+			
 			start2 = time.time()
 			image_src = image_proc(image_src)
 			end2 = time.time()
@@ -324,12 +403,12 @@ if __name__ == "__main__":
 			end3 = time.time()
 
 			start4 = time.time()
-			#image_display(image_src,lines, l) #cap,l
+			#image_display(image_src) #cap,l
 			end4 = time.time()     
 	
-			bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
-			perf.append(bla)
-			print np.median(perf)
+			#bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
+			#perf.append(bla)
+			#print np.median(perf)
 			if cv2.waitKey(1) & 0xFF == ord('q'):
 			        set_motor_dutycycle(0)
 			        #cap.release()
