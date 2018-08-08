@@ -43,13 +43,14 @@ MOTOR_ACTIVE = False	#Debugvariable- aktiviert den Motor, waehrend Debug ausgesc
 BEEPER_ACTIVE = False	#Debugvariable- aktiviert den Beeper, waehrend Debug ausgeschaltet
 THREAD_STARTED = False	#Flag fuer Mutlithreading
 
+straight_flag = True
+curve_flage = False
+curve_is_over_flag = False
+            
 lock = allocate_lock()		#ermoeglicht eine Atomare Operation waehrend des Inits der Multithreading
 Q = deque(4*[0], 4)		#Groesse des Schieberegisters, welches als Filter fungiert. Mittelwert des Registers = aktuelelr abstand zur naechsten Kurve
 print "Init Queue"
-Q_line0 = deque(4*[0], 4)
-Q_line1 = deque(4*[0], 4)
-Q_line2 = deque(4*[0], 4)
-Q_line3 = deque(4*[0], 4)
+
 ###THREADING
 num_threads = 0			#Thread counter
 
@@ -66,6 +67,7 @@ address = 0x68       # via i2cdetect
 
 #Thread um daten aus Sensor auszulesen
 acc_data = np.array([0,0,0,0,0,0])
+
 def get_acc_data(x):
         global acc_data, num_threads, THREAD_STARTED
         lock.acquire()								#hier wird atomare Operation gestartet, um die naechsten Zeilen "in einem Rutsch" auszufuehren
@@ -91,29 +93,36 @@ def get_acc_data(x):
                 #print "beschleunigung_zout: ", ("%6d" % beschleunigung_zout), " skaliert: ", beschleunigung_zout_skaliert
                 #print beschleunigung_xout_skaliert,",", beschleunigung_yout_skaliert,",", beschleunigung_zout,",", gyroskop_xout,",", gyroskop_yout,",", gyroskop_zout
                 acc_data = np.array([beschleunigung_xout, beschleunigung_yout, beschleunigung_zout, gyroskop_xout, gyroskop_yout, gyroskop_zout])
-                time.sleep(0.005)
+                time.sleep(0.05)
         lock.acquire()
         num_threads -= 1
         lock.release()    
         return None
 
 def gyro_regelung(x):            #DAS IST SHIT, morgen wieder rasnehmen
-        global acc_data
+        global acc_data, curve_flag, curve_is_over_flag, straight_flag
         pi.write(6, 0)
-        time.sleep(0.01)
+        time.sleep(0.005)
 	gier = acc_data[5]
-	print gier
         while True:
-            set_motor_dutycycle(109)
+            straight_flag = True
+            curve_flage = False
+            curve_is_over_flag = False
+            time.sleep(0.005)
 	    gier = acc_data[5]
             while gier > 110:
-                            gier =  acc_data[5]
-                            set_motor_dutycycle(100)
-            		    if gier < 87:
-                            	set_motor_dutycycle(190)
-                            	time.sleep(0.56)
-				set_motor_dutycycle(100)
-				break
+                curve_flag = True
+                curve_is_over_flag = False
+                straight_flag = False
+                time.sleep(0.005)
+                gier =  acc_data[5]
+                if gier < 87:
+                    curve_is_over_flag = True
+                    curve_flag = False
+                    straight_flag = False
+                    time.sleep(0.26)
+		    break
+	return 0
                             
 def read_byte(reg):
         return bus.read_byte_data(address, reg)
@@ -195,28 +204,19 @@ def draw_grid(image_src):  #Funktion um Gitternetzlinien auf Bild zu zeichnen
 def image_proc(image_src):
     #Image Colorspace
                             #[240:480,0:640]
-        
+        s1 = time.time()
+        image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)
+        #image_src = undistort(image_src)  #ist erstmal raus, braucht zu lange
         image_src = image_src[240:400,0:640]
         
-         #LaneSideTracking with ColorFilter
-        #h,s,v = cv2.split(image_src_hsv)
-        #image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)
-#        cv2.imshow("cropped", image_src)
+        cv2.imshow("cropped", image_src)
+     
+        graybot = cv2.getTrackbarPos("bot", "slider") #0
+        graytop = cv2.getTrackbarPos("top", "slider")   #193
+
+        e1 = time.time()
         
-        hue_t = cv2.getTrackbarPos("HUE_top", "slider") #180
-        sat_t = cv2.getTrackbarPos("SATURATION_top", "slider") #13
-        val_t = cv2.getTrackbarPos("VALUE_top", "slider") #255
-        
-        hue_b = cv2.getTrackbarPos("HUE_bot", "slider") #0
-        sat_b = cv2.getTrackbarPos("SATURATION_bot", "slider") #0
-        val_b = cv2.getTrackbarPos("VALUE_bot", "slider")   #193
-        
-        upper_white = (hue_t, sat_t, val_t)
-        lower_white = (hue_b, sat_b, val_b)
-        
-        
-        
-        
+        s2 = time.time()
         #Transformation
         src = np.float32([[0,160], [0,0],[640,0],[640,160]])
         dst = np.float32([[280,160], [0,0],[640,0],[360,160]])
@@ -224,21 +224,16 @@ def image_proc(image_src):
         
         top_view = cv2.warpPerspective(image_src,  M, (640,160))
         top_view = top_view[:,260:380]
-        
-        top_view = cv2.resize(top_view, None, fx = 2, fy = 2, interpolation = cv2.INTER_CUBIC)
-        cv2.imshow("Top View", top_view)
-        #cv2.imshow("straight", image_src_straight)
-        
-        #top_view = cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 9, 2)
-        #top_view = np.invert(top_view)
-        
-        #top_view = cv2.GaussianBlur(top_view, (3,3), 0)
-        #image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)	#LaneTracking
-        top_view = cv2.cvtColor(top_view, cv2.COLOR_BGR2HSV)
-        top_view = cv2.inRange(top_view, lower_white, upper_white)
-        
-        #top_view = cv2.inRange(top_view, 200, 255)
-#        cv2.imshow("hsv", top_view)
+        top_view = cv2.GaussianBlur(top_view, (5,5), 0)
+
+
+        top_view = cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 7, 8)
+        e2 = time.time()
+        top_view = np.invert(top_view)
+
+        #top_view = cv2.resize(top_view, None, fx = 3, fy = 3, interpolation = cv2.INTER_CUBIC)
+        #top_view_gray = cv2.inRange(top_view, 3, 100)
+        cv2.imshow("gray", top_view)
         #Image Crop
         #320,240
         #print image_src.shape[0]
@@ -261,8 +256,8 @@ def image_proc(image_src):
         #cv2.imshow("H", image_src_straight)
         #cv2.imshow("Canny", image_src)
         
-        
-        return top_view
+        print e1 - s1, ".", e2 - s2
+        return None
 
 
 def get_median(l):
@@ -319,10 +314,13 @@ def init():
     cv2.createTrackbar("SATURATION_bot", "slider", 0, 255, nothing)
     cv2.createTrackbar("VALUE_bot", "slider", 0, 255, nothing)
     
+    cv2.createTrackbar("bot", "slider", 0, 255, nothing)
+    cv2.createTrackbar("top", "slider", 0, 255, nothing)
+    
 
 if __name__ == "__main__":
         start_new_thread(get_acc_data, (None,))
-        start_new_thread(gyro_regelung, (None,))
+        #start_new_thread(gyro_regelung, (None,))
         print("[INFO] Init Cam")
         time.sleep(1.0)
         fps = FPS().start()
@@ -364,13 +362,13 @@ if __name__ == "__main__":
         l = 0
         # loop over some frames...this time using the threaded stream
 	perf = []
-	#init()
+	init()
 	if RUNNING_ON_PI == True:
             
             while True:
             #cap = cv2.VideoCapture('2018_06_20_2.h264')
             #	frame_counter = 0	
-            #	init()
+                init()
 								#Dieser Block wird ausgefuehrt wenn das Programm von der Kamera Video beziehen soll
 		
 		#for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
@@ -378,7 +376,6 @@ if __name__ == "__main__":
 		        start1 = time.time()
 		        #image_src = frame.array
                         image_src = vs.read()
-                        undistort(image_src)
                         end1 = time.time()
 		        start2 = time.time()
 		        image_src = image_proc(image_src)
@@ -405,13 +402,13 @@ if __name__ == "__main__":
 		        fps.update()
 		        
 	else:					#Dieser Block wird ausgefuehrt, wenn das Programm von einer Datei das Video lesen soll
-                cap = cv2.VideoCapture('2018_08_02_1.h264')
+                cap = cv2.VideoCapture('2018_08_02_2.h264')
 		while True:
 			start1 = time.time()		
 			ret, image_src = cap.read()
 			end1 = time.time()
 			
-			image_src = undistort(image_src)
+			#image_src = undistort(image_src)
 			
 			start2 = time.time()
 			image_src = image_proc(image_src)
