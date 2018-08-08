@@ -38,7 +38,7 @@ pi.set_PWM_dutycycle(12, 0)	#Sicherstellen, dass das Auto am Anfang still steht
 
 
 #FLAGS
-RUNNING_ON_PI = True	#Abhaengig von der aktuellen Laufzeitumgebung
+RUNNING_ON_PI = False	#Abhaengig von der aktuellen Laufzeitumgebung
 MOTOR_ACTIVE = False	#Debugvariable- aktiviert den Motor, waehrend Debug ausgeschaltet
 BEEPER_ACTIVE = False	#Debugvariable- aktiviert den Beeper, waehrend Debug ausgeschaltet
 THREAD_STARTED = False	#Flag fuer Mutlithreading
@@ -65,7 +65,7 @@ address = 0x68       # via i2cdetect
 #bus.write_byte_data(address, power_mgmt_1, 0)
 
 #Thread um daten aus Sensor auszulesen
-acc_data = [0,0,0,0,0,0]
+acc_data = np.array([0,0,0,0,0,0])
 def get_acc_data(x):
         global acc_data, num_threads, THREAD_STARTED
         lock.acquire()								#hier wird atomare Operation gestartet, um die naechsten Zeilen "in einem Rutsch" auszufuehren
@@ -89,14 +89,32 @@ def get_acc_data(x):
                 #print "beschleunigung_xout: ", ("%6d" % beschleunigung_xout), " skaliert: ", beschleunigung_xout_skaliert
                 #print "beschleunigung_yout: ", ("%6d" % beschleunigung_yout), " skaliert: ", beschleunigung_yout_skaliert
                 #print "beschleunigung_zout: ", ("%6d" % beschleunigung_zout), " skaliert: ", beschleunigung_zout_skaliert
-                print beschleunigung_xout_skaliert,",", beschleunigung_yout_skaliert,",", beschleunigung_zout_skaliert,",", gyroskop_xout,",", gyroskop_yout,",", gyroskop_zout
-                acc_data = [beschleunigung_xout_skaliert, beschleunigung_yout_skaliert, beschleunigung_zout_skaliert, gyroskop_xout, gyroskop_yout, gyroskop_zout]
+                #print beschleunigung_xout_skaliert,",", beschleunigung_yout_skaliert,",", beschleunigung_zout,",", gyroskop_xout,",", gyroskop_yout,",", gyroskop_zout
+                acc_data = np.array([beschleunigung_xout, beschleunigung_yout, beschleunigung_zout, gyroskop_xout, gyroskop_yout, gyroskop_zout])
                 time.sleep(0.005)
         lock.acquire()
         num_threads -= 1
         lock.release()    
         return None
-    
+
+def gyro_regelung(x):            #DAS IST SHIT, morgen wieder rasnehmen
+        global acc_data
+        pi.write(6, 0)
+        time.sleep(0.01)
+	gier = acc_data[5]
+	print gier
+        while True:
+            set_motor_dutycycle(109)
+	    gier = acc_data[5]
+            while gier > 110:
+                            gier =  acc_data[5]
+                            set_motor_dutycycle(100)
+            		    if gier < 87:
+                            	set_motor_dutycycle(190)
+                            	time.sleep(0.56)
+				set_motor_dutycycle(100)
+				break
+                            
 def read_byte(reg):
         return bus.read_byte_data(address, reg)
 
@@ -138,7 +156,7 @@ def get_x_rotation(x,y,z):
 def set_motor_dutycycle(x):
 	global RUNNING_ON_PI
 	if RUNNING_ON_PI == True and MOTOR_ACTIVE == True:
-		pi.set_PWM_dutycycle(12, x)
+		pi.set_PWM_dutycycle(18, x)
 	else:
 		pass
 
@@ -147,7 +165,7 @@ def activate_beeper(x):					# Parameter: 1 = An; 0 = Aus
 	if RUNNING_ON_PI == True and BEEPER_ACTIVE == True:
 		global pi
 		if x == 1:
-			pi.set_PWM_dutycycle(18, 120)
+			pi.set_PWM_dutycycle(18, 40)
 		else:
 			pi.set_PWM_dutycycle(18, 0)
 
@@ -208,7 +226,7 @@ def image_proc(image_src):
         top_view = top_view[:,260:380]
         
         top_view = cv2.resize(top_view, None, fx = 2, fy = 2, interpolation = cv2.INTER_CUBIC)
-#        cv2.imshow("Top View", top_view)
+        cv2.imshow("Top View", top_view)
         #cv2.imshow("straight", image_src_straight)
         
         #top_view = cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 9, 2)
@@ -304,6 +322,7 @@ def init():
 
 if __name__ == "__main__":
         start_new_thread(get_acc_data, (None,))
+        start_new_thread(gyro_regelung, (None,))
         print("[INFO] Init Cam")
         time.sleep(1.0)
         fps = FPS().start()
@@ -359,7 +378,7 @@ if __name__ == "__main__":
 		        start1 = time.time()
 		        #image_src = frame.array
                         image_src = vs.read()
-                        #undistort(image_src)
+                        undistort(image_src)
                         end1 = time.time()
 		        start2 = time.time()
 		        image_src = image_proc(image_src)
