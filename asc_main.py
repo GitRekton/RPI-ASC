@@ -329,50 +329,45 @@ def init():
 
 def histogram(top_view):
         #Bild ist 140 hoch x 120 breit pixel
-        s1 = top_view[130:140,:]
-        #s1= cv2.resize(top_view[130:140,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
+    
+        s = [0] * 7
         
-        #s2 = top_view[120:130,:]
-        s2= cv2.resize(top_view[120:130,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
-        
-        #s3 = top_view[110:120,:]
-        s3= cv2.resize(top_view[110:120,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
-        
-        #s4 = top_view[100:110,:]
-        s4= cv2.resize(top_view[100:110,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
-        
-        #s5 = top_view[90:100,:]
-        s5= cv2.resize(top_view[90:100,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
-        
-        #s6 = top_view[80:90,:]
-        s6= cv2.resize(top_view[80:90,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
-        
-        #s7 = top_view[70:80,:]
-        s7= cv2.resize(top_view[70:80,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
-        
+        s[0] = top_view[130:140,:]
+        #s0= cv2.resize(top_view[130:140,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
+        s[1] = top_view[120:130,:]
+        #s1= cv2.resize(top_view[120:130,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
+        s[2] = top_view[110:120,:]
+        #s2= cv2.resize(top_view[110:120,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)  
+        s[3] = top_view[100:110,:]
+        #s3= cv2.resize(top_view[100:110,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)      
+        s[4] = top_view[90:100,:]
+        #s4= cv2.resize(top_view[90:100,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)       
+        s[5] = top_view[80:90,:]
+        #s5= cv2.resize(top_view[80:90,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)    
+        s[6] = top_view[70:80,:]
+        #s6= cv2.resize(top_view[70:80,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)        
 
-        
-        s1_plot = np.zeros((10,120,1), np.uint8)
-        
-        s1_list = []
+        zehnercounter = [0] * 7
+        #s1_list = []
         #for col in range(10):
         #   s1_list.append(cv2.countNonZero(s1[col,:]))
-        for col in range(120):
-            temp = cv2.countNonZero(s1[:,col])
-            s1_list.append(temp)  #^,->      links Zeile, rechts Spalte
-            #s1_plot[col, temp] = [255]
-            cv2.circle(s1_plot,(col, temp), 1, (170), -1)
-            
-            
-        cv2.imshow("1", cv2.resize(s1, None, fx = 6, fy = 6, interpolation = cv2.INTER_CUBIC))
-        cv2.imshow("1_plot)", cv2.resize(s1_plot, None, fx = 6, fy = 6, interpolation = cv2.INTER_CUBIC))
-        #cv2.imshow("2", s2)
-        #cv2.imshow("3", s3)
-        #cv2.imshow("4", s4)
-        #cv2.imshow("5", s5)
-        #cv2.imshow("6", s6)
-        #cv2.imshow("7", s7)       
+        for n in range(7):
+            for col in range(120):
+                temp = cv2.countNonZero(s[n][:,col])
+                #s1_list.append(temp)  #^,->      links Zeile, rechts Spalte
+                #s1_plot[col, temp] = [255]
+                #cv2.circle(s1_plot,(col, temp), 1, (170), -1)
+                if temp == 10:
+                    zehnercounter[n] += 1
         
+        
+        print zehnercounter
+                    
+            
+        #for n in range(7):  
+        #   cv2.imshow(str(n), cv2.resize(s[n], None, fx = 6, fy = 6, interpolation = cv2.INTER_CUBIC))
+        #cv2.imshow("1_plot)", cv2.resize(s1_plot, None, fx = 6, fy = 6, interpolation = cv2.INTER_CUBIC))
+
         
             
         return 0
