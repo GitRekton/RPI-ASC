@@ -207,7 +207,7 @@ def image_proc(image_src):
         s1 = time.time()
         image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)
         #image_src = undistort(image_src)  #ist erstmal raus, braucht zu lange
-        image_src = image_src[240:400,0:640]
+        image_src = image_src[260:400,0:640]  #image_src[240:400,0:640]
         
         cv2.imshow("cropped", image_src)
      
@@ -218,22 +218,32 @@ def image_proc(image_src):
         
         s2 = time.time()
         #Transformation
-        src = np.float32([[0,160], [0,0],[640,0],[640,160]])
-        dst = np.float32([[280,160], [0,0],[640,0],[360,160]])
+        src = np.float32([[0,140], [0,0],[640,0],[640,140]])  #np.float32([[0,160], [0,0],[640,0],[640,160]])
+        dst = np.float32([[280,140], [0,0],[640,0],[360,138]])  #np.float32([[280,160], [0,0],[640,0],[360,160]])
         M = cv2.getPerspectiveTransform(src, dst)
         
-        top_view = cv2.warpPerspective(image_src,  M, (640,160))
+        top_view = cv2.warpPerspective(image_src,  M, (640,140))
+        
+        cv2.imshow("ok", top_view)
+        
         top_view = top_view[:,260:380]
         top_view = cv2.GaussianBlur(top_view, (5,5), 0)
-
+        cv2.imshow("top_view", cv2.Canny(top_view,100,220))
+        top_view_sobel = cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)  #cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)
+        print top_view_sobel.shape
+        cv2.imshow("top_view_sobel", top_view_sobel)
+        cv2.imshow("top_view_THSOBEL", np.invert(cv2.adaptiveThreshold(top_view_sobel,255,cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 3, 8)))
+        
+        top_view_gray = cv2.inRange(top_view, 200, 255)
 
         top_view = cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 7, 8)
         e2 = time.time()
         top_view = np.invert(top_view)
 
         #top_view = cv2.resize(top_view, None, fx = 3, fy = 3, interpolation = cv2.INTER_CUBIC)
-        #top_view_gray = cv2.inRange(top_view, 3, 100)
+        
         cv2.imshow("gray", top_view)
+        cv2.imshow("whitefilter", top_view_gray)
         #Image Crop
         #320,240
         #print image_src.shape[0]
@@ -257,7 +267,7 @@ def image_proc(image_src):
         #cv2.imshow("Canny", image_src)
         
         print e1 - s1, ".", e2 - s2
-        return None
+        return top_view
 
 
 def get_median(l):
@@ -316,7 +326,56 @@ def init():
     
     cv2.createTrackbar("bot", "slider", 0, 255, nothing)
     cv2.createTrackbar("top", "slider", 0, 255, nothing)
-    
+
+def histogram(top_view):
+        #Bild ist 140 hoch x 120 breit pixel
+        s1 = top_view[130:140,:]
+        #s1= cv2.resize(top_view[130:140,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
+        
+        #s2 = top_view[120:130,:]
+        s2= cv2.resize(top_view[120:130,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
+        
+        #s3 = top_view[110:120,:]
+        s3= cv2.resize(top_view[110:120,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
+        
+        #s4 = top_view[100:110,:]
+        s4= cv2.resize(top_view[100:110,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
+        
+        #s5 = top_view[90:100,:]
+        s5= cv2.resize(top_view[90:100,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
+        
+        #s6 = top_view[80:90,:]
+        s6= cv2.resize(top_view[80:90,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
+        
+        #s7 = top_view[70:80,:]
+        s7= cv2.resize(top_view[70:80,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
+        
+
+        
+        s1_plot = np.zeros((10,120,1), np.uint8)
+        
+        s1_list = []
+        #for col in range(10):
+        #   s1_list.append(cv2.countNonZero(s1[col,:]))
+        for col in range(120):
+            temp = cv2.countNonZero(s1[:,col])
+            s1_list.append(temp)  #^,->      links Zeile, rechts Spalte
+            #s1_plot[col, temp] = [255]
+            cv2.circle(s1_plot,(col, temp), 1, (170), -1)
+            
+            
+        cv2.imshow("1", cv2.resize(s1, None, fx = 6, fy = 6, interpolation = cv2.INTER_CUBIC))
+        cv2.imshow("1_plot)", cv2.resize(s1_plot, None, fx = 6, fy = 6, interpolation = cv2.INTER_CUBIC))
+        #cv2.imshow("2", s2)
+        #cv2.imshow("3", s3)
+        #cv2.imshow("4", s4)
+        #cv2.imshow("5", s5)
+        #cv2.imshow("6", s6)
+        #cv2.imshow("7", s7)       
+        
+        
+            
+        return 0
 
 if __name__ == "__main__":
         start_new_thread(get_acc_data, (None,))
@@ -378,7 +437,8 @@ if __name__ == "__main__":
                         image_src = vs.read()
                         end1 = time.time()
 		        start2 = time.time()
-		        image_src = image_proc(image_src)
+		        top_view = image_proc(image_src)
+		        lane_maximums = histogram(top_view)
 		        end2 = time.time()
 		        
 		        start3 = time.time()
@@ -411,7 +471,8 @@ if __name__ == "__main__":
 			#image_src = undistort(image_src)
 			
 			start2 = time.time()
-			image_src = image_proc(image_src)
+			top_view = image_proc(image_src)
+			lane_maximums = histogram(top_view)
 			end2 = time.time()
 			
 			start3 = time.time()
