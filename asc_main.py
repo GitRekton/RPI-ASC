@@ -279,17 +279,22 @@ def get_median(l):
                 med.append(elem)			
         return np.median(med)
 
-def trs(image_src):
-	lines = 0
-	#			image, -, -, threshold, maxLineGap, minLineLenght, 
-	lines = cv2.HoughLinesP(image_src,1, np.pi/2, 10, 2, 25) # 2, 60)
-	if lines is not None:
-                for line in lines:
-                        try:
-				coords = line[0]
-        #                        cv2.line(image_src, (coords[0], coords[1]), (coords[2], coords[3]), [100], 3)
-                        except:
-                                pass
+def trs(lane_maximus):
+        # Eingangsgroessen:
+        # lane_maximus - 7er array, jedes Element des Arrays repraesteniert die anzahl der hochpunkte im jeweiligen Segment.
+        # Segment 0 = lane_maximus[0]
+        #
+        # acc_data - 6er array, np.array([beschleunigung_xout,
+        #                                 beschleunigung_yout,
+        #                                 beschleunigung_zout,
+        #                                 gyroskop_xout,
+        #                                 gyroskop_yout,
+        #                                 gyroskop_zout])
+        
+        global acc_data
+        print acc_data[5] ,", ", lane_maximus[0],", ", lane_maximus[1],", ", lane_maximus[2],", ", lane_maximus[3],", ", lane_maximus[4],", ", lane_maximus[5],", ", lane_maximus[6] 
+        
+        
         return 0
 
 def image_display(image_src):#l
@@ -461,7 +466,7 @@ if __name__ == "__main__":
 		        fps.update()
 		        
 	else:					#Dieser Block wird ausgefuehrt, wenn das Programm von einer Datei das Video lesen soll
-                cap = cv2.VideoCapture('2018_08_02_2.h264')
+                cap = cv2.VideoCapture('2018_08_02_1.h264')  #2018_08_02_2.h264
 		while True:
 			start1 = time.time()		
 			ret, image_src = cap.read()
@@ -475,7 +480,7 @@ if __name__ == "__main__":
 			end2 = time.time()
 			
 			start3 = time.time()
-			#l = trs(image_src)
+			trs(lane_maximums)
 			end3 = time.time()
 
 			start4 = time.time()
