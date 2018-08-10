@@ -230,7 +230,7 @@ def image_proc(image_src):
         top_view = cv2.GaussianBlur(top_view, (5,5), 0)
         cv2.imshow("top_view", cv2.Canny(top_view,100,220))
         top_view_sobel = cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)  #cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)
-        print top_view_sobel.shape
+    
         cv2.imshow("top_view_sobel", top_view_sobel)
         cv2.imshow("top_view_THSOBEL", np.invert(cv2.adaptiveThreshold(top_view_sobel,255,cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 3, 8)))
         
@@ -266,7 +266,7 @@ def image_proc(image_src):
         #cv2.imshow("H", image_src_straight)
         #cv2.imshow("Canny", image_src)
         
-        print e1 - s1, ".", e2 - s2
+        #print e1 - s1, ".", e2 - s2
         return top_view
 
 
@@ -329,8 +329,8 @@ def init():
 
 def histogram(top_view):
         #Bild ist 140 hoch x 120 breit pixel
-    
-        s = [0] * 7
+        dummy = np.zeros((10,120))
+        s = np.array([dummy] * 7)
         
         s[0] = top_view[130:140,:]
         #s0= cv2.resize(top_view[130:140,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
@@ -347,31 +347,33 @@ def histogram(top_view):
         s[6] = top_view[70:80,:]
         #s6= cv2.resize(top_view[70:80,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)        
 
-        zehnercounter = [0] * 7
-        #s1_list = []
-        #for col in range(10):
-        #   s1_list.append(cv2.countNonZero(s1[col,:]))
+        #zehnercounter = [0] * 7
+        zehnercounter = np.array([0] * 7)
+        
+        histogram = np.zeros((120))
+        histograms = np.array([histogram] * 7)
+        
         for n in range(7):
             for col in range(120):
                 temp = cv2.countNonZero(s[n][:,col])
                 #s1_list.append(temp)  #^,->      links Zeile, rechts Spalte
                 #s1_plot[col, temp] = [255]
                 #cv2.circle(s1_plot,(col, temp), 1, (170), -1)
+                histogram[col] = temp
                 if temp == 10:
                     zehnercounter[n] += 1
+            histograms[n] = histogram
         
+        #print zehnercounter
+        #print histograms
         
-        print zehnercounter
-                    
-            
-        #for n in range(7):  
-        #   cv2.imshow(str(n), cv2.resize(s[n], None, fx = 6, fy = 6, interpolation = cv2.INTER_CUBIC))
-        #cv2.imshow("1_plot)", cv2.resize(s1_plot, None, fx = 6, fy = 6, interpolation = cv2.INTER_CUBIC))
-
+        if cv2.waitKey(1) & 0xFF == ord('p'):
+            for n in range(7):
+                cv2.imwrite("Test" + str(n) + ".png" , s[n])
+                print histograms
+			    
+        return zehnercounter
         
-            
-        return 0
-
 if __name__ == "__main__":
         start_new_thread(get_acc_data, (None,))
         #start_new_thread(gyro_regelung, (None,))
