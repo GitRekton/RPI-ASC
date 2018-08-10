@@ -353,8 +353,9 @@ def histogram(top_view):
         histogram = np.zeros((120))
         histograms = np.array([histogram] * 7)
         
-        for n in range(7):
-            for col in range(120):
+        for n in range(7):      #bildauswahl
+            
+            for col in range(120):  #bildbreite range
                 temp = cv2.countNonZero(s[n][:,col])
                 #s1_list.append(temp)  #^,->      links Zeile, rechts Spalte
                 #s1_plot[col, temp] = [255]
@@ -371,6 +372,7 @@ def histogram(top_view):
             for n in range(7):
                 cv2.imwrite("Test" + str(n) + ".png" , s[n])
                 print histograms
+                print ";"
 			    
         return zehnercounter
         
