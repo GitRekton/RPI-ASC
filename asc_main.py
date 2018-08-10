@@ -33,7 +33,7 @@ rawCapture = PiRGBArray(camera, size=(480, 640))
 stream = camera.capture_continuous(rawCapture, format="bgr",use_video_port=True)
 
 lines = None
-pi.set_PWM_dutycycle(12, 0)	#Sicherstellen, dass das Auto am Anfang still steht
+#pi.set_PWM_dutycycle(12, 0)	#Sicherstellen, dass das Auto am Anfang still steht
 #stream = PiVideoStream().start()
 
 
@@ -204,46 +204,46 @@ def draw_grid(image_src):  #Funktion um Gitternetzlinien auf Bild zu zeichnen
 def image_proc(image_src):
     #Image Colorspace
                             #[240:480,0:640]
+        cv2.imshow("source", image_src)
         s1 = time.time()
         image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)
         #image_src = undistort(image_src)  #ist erstmal raus, braucht zu lange
         image_src = image_src[260:400,0:640]  #image_src[240:400,0:640]
-        
-        cv2.imshow("cropped", image_src)
+        image_src = cv2.resize(image_src, None, fx = 0.5, fy = 0.5, interpolation = cv2.INTER_CUBIC)
+#        cv2.imshow("cropped", image_src)
      
-        graybot = cv2.getTrackbarPos("bot", "slider") #0
-        graytop = cv2.getTrackbarPos("top", "slider")   #193
+#        graybot = cv2.getTrackbarPos("bot", "slider") #0
+#        graytop = cv2.getTrackbarPos("top", "slider")   #193
 
         e1 = time.time()
         
         s2 = time.time()
         #Transformation
-        src = np.float32([[0,140], [0,0],[640,0],[640,140]])  #np.float32([[0,160], [0,0],[640,0],[640,160]])
-        dst = np.float32([[280,140], [0,0],[640,0],[360,138]])  #np.float32([[280,160], [0,0],[640,0],[360,160]])
+        src = np.float32([[0,70], [0,0],[320,0],[320,70]])  #np.float32([[0,140], [0,0],[640,0],[640,140]])
+        dst = np.float32([[140,70], [0,0],[320,0],[180,69]])  #np.float32([[280,140], [0,0],[640,0],[360,138]])
         M = cv2.getPerspectiveTransform(src, dst)
         
-        top_view = cv2.warpPerspective(image_src,  M, (640,140))
+        top_view = cv2.warpPerspective(image_src,  M, (320,70)) #cv2.warpPerspective(image_src,  M, (640,140))
+        e2 = time.time()
+#        cv2.imshow("ok", top_view)
         
-        cv2.imshow("ok", top_view)
-        
-        top_view = top_view[:,260:380]
+        top_view = top_view[:,130:190]  #top_view = top_view[:,260:380]
         top_view = cv2.GaussianBlur(top_view, (5,5), 0)
-        cv2.imshow("top_view", cv2.Canny(top_view,100,220))
+#        cv2.imshow("top_view", cv2.Canny(top_view,100,220))
         top_view_sobel = cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)  #cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)
     
-        cv2.imshow("top_view_sobel", top_view_sobel)
-        cv2.imshow("top_view_THSOBEL", np.invert(cv2.adaptiveThreshold(top_view_sobel,255,cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 3, 8)))
+        cv2.imshow("top_view_sobel", image_src)
+#        cv2.imshow("top_view_THSOBEL", np.invert(cv2.adaptiveThreshold(top_view_sobel,255,cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 3, 8)))
         
         top_view_gray = cv2.inRange(top_view, 200, 255)
 
         top_view = cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 7, 8)
-        e2 = time.time()
         top_view = np.invert(top_view)
 
         #top_view = cv2.resize(top_view, None, fx = 3, fy = 3, interpolation = cv2.INTER_CUBIC)
         
         cv2.imshow("gray", top_view)
-        cv2.imshow("whitefilter", top_view_gray)
+#        cv2.imshow("whitefilter", top_view_gray)
         #Image Crop
         #320,240
         #print image_src.shape[0]
@@ -292,7 +292,7 @@ def trs(lane_maximus):
         #                                 gyroskop_zout])
         
         global acc_data
-        print acc_data[5] ,", ", lane_maximus[0],", ", lane_maximus[1],", ", lane_maximus[2],", ", lane_maximus[3],", ", lane_maximus[4],", ", lane_maximus[5],", ", lane_maximus[6] 
+        #print acc_data[5] ,", ", lane_maximus[0],", ", lane_maximus[1],", ", lane_maximus[2],", ", lane_maximus[3],", ", lane_maximus[4],", ", lane_maximus[5],", ", lane_maximus[6] 
         
         
         return 0
@@ -319,63 +319,63 @@ def undistort(img):
     map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
     return cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
-def init():
-    cv2.namedWindow("slider")
-    cv2.createTrackbar("HUE_top", "slider", 0, 180, nothing)
-    cv2.createTrackbar("SATURATION_top", "slider", 0, 255, nothing)
-    cv2.createTrackbar("VALUE_top", "slider", 0, 255, nothing)
+#def init():
+#    cv2.namedWindow("slider")
+#    cv2.createTrackbar("HUE_top", "slider", 0, 180, nothing)
+#    cv2.createTrackbar("SATURATION_top", "slider", 0, 255, nothing)
+#    cv2.createTrackbar("VALUE_top", "slider", 0, 255, nothing)
     
-    cv2.createTrackbar("HUE_bot", "slider", 0, 180, nothing)
-    cv2.createTrackbar("SATURATION_bot", "slider", 0, 255, nothing)
-    cv2.createTrackbar("VALUE_bot", "slider", 0, 255, nothing)
+#    cv2.createTrackbar("HUE_bot", "slider", 0, 180, nothing)
+#    cv2.createTrackbar("SATURATION_bot", "slider", 0, 255, nothing)
+#    cv2.createTrackbar("VALUE_bot", "slider", 0, 255, nothing)
     
-    cv2.createTrackbar("bot", "slider", 0, 255, nothing)
-    cv2.createTrackbar("top", "slider", 0, 255, nothing)
+#    cv2.createTrackbar("bot", "slider", 0, 255, nothing)
+#    cv2.createTrackbar("top", "slider", 0, 255, nothing)
 
 def histogram(top_view):
-        #Bild ist 140 hoch x 120 breit pixel
-        dummy = np.zeros((10,120))
+        #Bild ist 70 hoch x 60 breit #Bild ist 140 hoch x 120 breit pixel
+        dummy = np.zeros((5,60))  #dummy = np.zeros((10,120))
         s = np.array([dummy] * 7)
         
-        s[0] = top_view[130:140,:]
+        s[0] = top_view[65:70,:]  # s[0] = top_view[130:140,:]
         #s0= cv2.resize(top_view[130:140,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
-        s[1] = top_view[120:130,:]
+        s[1] = top_view[60:65,:]  #s[1] = top_view[120:130,:]
         #s1= cv2.resize(top_view[120:130,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
-        s[2] = top_view[110:120,:]
+        s[2] = top_view[55:60,:]  #s[2] = top_view[110:120,:]
         #s2= cv2.resize(top_view[110:120,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)  
-        s[3] = top_view[100:110,:]
+        s[3] = top_view[50:55,:]  #s[3] = top_view[100:110,:]
         #s3= cv2.resize(top_view[100:110,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)      
-        s[4] = top_view[90:100,:]
+        s[4] = top_view[45:50,:]  #s[4] = top_view[90:100,:]
         #s4= cv2.resize(top_view[90:100,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)       
-        s[5] = top_view[80:90,:]
+        s[5] = top_view[40:45,:]  #s[5] = top_view[80:90,:]
         #s5= cv2.resize(top_view[80:90,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)    
-        s[6] = top_view[70:80,:]
+        s[6] = top_view[35:40,:]  #s[6] = top_view[70:80,:]
         #s6= cv2.resize(top_view[70:80,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)        
 
         #zehnercounter = [0] * 7
         zehnercounter = np.array([0] * 7)
         
-        histogram = np.zeros((120))
+        histogram = np.zeros((60))
         histograms = np.array([histogram] * 7)
         
         for n in range(7):      #bildauswahl
             
-            for col in range(120):  #bildbreite range
+            for col in range(60):  #bildbreite range
                 temp = cv2.countNonZero(s[n][:,col])
                 #s1_list.append(temp)  #^,->      links Zeile, rechts Spalte
                 #s1_plot[col, temp] = [255]
                 #cv2.circle(s1_plot,(col, temp), 1, (170), -1)
                 histogram[col] = temp
-                if temp == 10:
+                if temp == 5:
                     zehnercounter[n] += 1
             histograms[n] = histogram
         
-        #print zehnercounter
+        print zehnercounter
         #print histograms
         
         if cv2.waitKey(1) & 0xFF == ord('p'):
             for n in range(7):
-                cv2.imwrite("Test" + str(n) + ".png" , s[n])
+                cv2.imwrite("Test" + str(n) + ".png" , cv2.resize(s[n], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC))
                 print histograms
                 print ";"
 			    
@@ -425,13 +425,13 @@ if __name__ == "__main__":
         l = 0
         # loop over some frames...this time using the threaded stream
 	perf = []
-	init()
+#	init()
 	if RUNNING_ON_PI == True:
             
             while True:
             #cap = cv2.VideoCapture('2018_06_20_2.h264')
             #	frame_counter = 0	
-                init()
+#                init()
 								#Dieser Block wird ausgefuehrt wenn das Programm von der Kamera Video beziehen soll
 		
 		#for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
@@ -440,19 +440,19 @@ if __name__ == "__main__":
 		        #image_src = frame.array
                         image_src = vs.read()
                         end1 = time.time()
+                        
 		        start2 = time.time()
 		        top_view = image_proc(image_src)
+
 		        lane_maximums = histogram(top_view)
 		        end2 = time.time()
 		        
 		        start3 = time.time()
+			trs(lane_maximums)
 		        #l = trs(image_src)
 		        end3 = time.time()
 		        #out.write(image_src)
 
-		        start4 = time.time()
-		        #image_display(image_src) #cap,l
-		        end4 = time.time()
 		        #rawCapture.truncate(0)      
 		        #bla = (end2-start2)*1000+(end3-start3)*1000
 		        #print (end1 - start1)*1000, "," , (end2-start2)*1000, "," , (end3-start3)*1000
@@ -466,7 +466,7 @@ if __name__ == "__main__":
 		        fps.update()
 		        
 	else:					#Dieser Block wird ausgefuehrt, wenn das Programm von einer Datei das Video lesen soll
-                cap = cv2.VideoCapture('2018_08_02_1.h264')  #2018_08_02_2.h264
+                cap = cv2.VideoCapture('2018_08_02_2.h264')  #2018_08_02_2.h264
 		while True:
 			start1 = time.time()		
 			ret, image_src = cap.read()
@@ -480,13 +480,9 @@ if __name__ == "__main__":
 			end2 = time.time()
 			
 			start3 = time.time()
-			trs(lane_maximums)
+			#trs(lane_maximums)
 			end3 = time.time()
 
-			start4 = time.time()
-			#image_display(image_src) #cap,l
-			end4 = time.time()     
-	
 			#bla = (start1-end1)*1000+(end2-start2)*1000+(end3-start3)*1000
 			#perf.append(bla)
 			#print np.median(perf)
