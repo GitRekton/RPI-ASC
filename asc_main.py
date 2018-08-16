@@ -38,8 +38,8 @@ lines = None
 
 
 #FLAGS
-RUNNING_ON_PI = False	#Abhaengig von der aktuellen Laufzeitumgebung
-MOTOR_ACTIVE = False	#Debugvariable- aktiviert den Motor, waehrend Debug ausgeschaltet
+RUNNING_ON_PI = True	#Abhaengig von der aktuellen Laufzeitumgebung
+MOTOR_ACTIVE = True	#Debugvariable- aktiviert den Motor, waehrend Debug ausgeschaltet
 BEEPER_ACTIVE = False	#Debugvariable- aktiviert den Beeper, waehrend Debug ausgeschaltet
 THREAD_STARTED = False	#Flag fuer Mutlithreading
 
@@ -53,6 +53,7 @@ print "Init Queue"
 
 ###THREADING
 num_threads = 0			#Thread counter
+zehnercounter = np.array([0] * 7)
 
 # FUNCTIONS FOR I2C-#######################FUNCTIONS FOR I2C-#######################FUNCTIONS FOR I2C-#######################FUNCTIONS FOR I2C-#######################
 # Register
@@ -69,30 +70,47 @@ address = 0x68       # via i2cdetect
 acc_data = np.array([0,0,0,0,0,0])
 
 def get_acc_data(x):
-        global acc_data, num_threads, THREAD_STARTED
+        global acc_data, num_threads, THREAD_STARTED, zehnercounter
         lock.acquire()								#hier wird atomare Operation gestartet, um die naechsten Zeilen "in einem Rutsch" auszufuehren
         num_threads += 1
         THREAD_STARTED = True
         lock.release()								#hier endet die Atomare Operation.
         #hier wird der I2C ausgelesen
         while True:
-                beschleunigung_xout = read_word_2c(0x3b)
-                beschleunigung_yout = read_word_2c(0x3d)
-                beschleunigung_zout = read_word_2c(0x3f)
-                gyroskop_xout = read_word_2c(0x43)
-                gyroskop_yout = read_word_2c(0x45)
+                #beschleunigung_xout = read_word_2c(0x3b)
+                #beschleunigung_yout = read_word_2c(0x3d)
+                #beschleunigung_zout = read_word_2c(0x3f)
+                #gyroskop_xout = read_word_2c(0x43)
+                #gyroskop_yout = read_word_2c(0x45)
                 gyroskop_zout = read_word_2c(0x47)
-                beschleunigung_xout_skaliert = beschleunigung_xout / 16384.0
-                beschleunigung_yout_skaliert = beschleunigung_yout / 16384.0
-                beschleunigung_zout_skaliert = beschleunigung_zout / 16384.0
-                gyroskop_xout = gyroskop_xout / 131
-                gyroskop_yout = gyroskop_yout / 131
+                #beschleunigung_xout_skaliert = beschleunigung_xout / 16384.0
+                #beschleunigung_yout_skaliert = beschleunigung_yout / 16384.0
+                #beschleunigung_zout_skaliert = beschleunigung_zout / 16384.0
+                #gyroskop_xout = gyroskop_xout / 131
+                #gyroskop_yout = gyroskop_yout / 131
                 gyroskop_zout = gyroskop_zout / 131
                 #print "beschleunigung_xout: ", ("%6d" % beschleunigung_xout), " skaliert: ", beschleunigung_xout_skaliert
                 #print "beschleunigung_yout: ", ("%6d" % beschleunigung_yout), " skaliert: ", beschleunigung_yout_skaliert
                 #print "beschleunigung_zout: ", ("%6d" % beschleunigung_zout), " skaliert: ", beschleunigung_zout_skaliert
                 #print beschleunigung_xout_skaliert,",", beschleunigung_yout_skaliert,",", beschleunigung_zout,",", gyroskop_xout,",", gyroskop_yout,",", gyroskop_zout
-                acc_data = np.array([beschleunigung_xout, beschleunigung_yout, beschleunigung_zout, gyroskop_xout, gyroskop_yout, gyroskop_zout])
+                acc_data = gyroskop_zout
+                
+                #kurz vor kurve
+                while zehnercounter[5] == 0 and zehnercounter[6] == 0 and acc_data < 80:
+                    set_motor_dutycycle(80)
+                    print "curve ahead"
+                
+                #in der Kurve
+                while acc_data >= 110 and zehnercounter[5] == 0 and zehnercounter[6] == 0:
+                    set_motor_dutycycle(80)
+                    print "curve"
+                    
+                #gerade     
+                while zehnercounter[5] >= 1 and zehnercounter[6] >= 1 and acc_data < 80:
+                    set_motor_dutycycle(128)
+                    print "straight"
+                
+                
                 time.sleep(0.05)
         lock.acquire()
         num_threads -= 1
@@ -204,11 +222,10 @@ def draw_grid(image_src):  #Funktion um Gitternetzlinien auf Bild zu zeichnen
 def image_proc(image_src):
     #Image Colorspace
                             #[240:480,0:640]
-        cv2.imshow("source", image_src)
         s1 = time.time()
+        image_src = image_src[260:400,0:640]  #image_src[240:400,0:640]
         image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)
         #image_src = undistort(image_src)  #ist erstmal raus, braucht zu lange
-        image_src = image_src[260:400,0:640]  #image_src[240:400,0:640]
         image_src = cv2.resize(image_src, None, fx = 0.5, fy = 0.5, interpolation = cv2.INTER_CUBIC)
 #        cv2.imshow("cropped", image_src)
      
@@ -227,6 +244,7 @@ def image_proc(image_src):
         e2 = time.time()
 #        cv2.imshow("ok", top_view)
         
+        s3 = time.time()
         top_view = top_view[:,130:190]  #top_view = top_view[:,260:380]
         top_view = cv2.GaussianBlur(top_view, (5,5), 0)
 #        cv2.imshow("top_view", cv2.Canny(top_view,100,220))
@@ -265,8 +283,8 @@ def image_proc(image_src):
 
         #cv2.imshow("H", image_src_straight)
         #cv2.imshow("Canny", image_src)
-        
-        #print e1 - s1, ".", e2 - s2
+        e3 = time.time()
+        #print e1 - s1, ".", e2 - s2, ",", e3 - s3
         return top_view
 
 
@@ -333,6 +351,7 @@ def undistort(img):
 #    cv2.createTrackbar("top", "slider", 0, 255, nothing)
 
 def histogram(top_view):
+        global zehnercounter
         #Bild ist 70 hoch x 60 breit #Bild ist 140 hoch x 120 breit pixel
         dummy = np.zeros((5,60))  #dummy = np.zeros((10,120))
         s = np.array([dummy] * 7)
@@ -370,7 +389,7 @@ def histogram(top_view):
                     zehnercounter[n] += 1
             histograms[n] = histogram
         
-        print zehnercounter
+        #print zehnercounter
         #print histograms
         
         if cv2.waitKey(1) & 0xFF == ord('p'):
