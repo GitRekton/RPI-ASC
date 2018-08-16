@@ -68,6 +68,8 @@ address = 0x68       # via i2cdetect
 
 #Thread um daten aus Sensor auszulesen
 acc_data = np.array([0,0,0,0,0,0])
+pi.write(6, 0)   #Motor Direction foreward
+time.sleep(0.4)
 
 def get_acc_data(x):
         global acc_data, num_threads, THREAD_STARTED, zehnercounter
@@ -94,21 +96,21 @@ def get_acc_data(x):
                 #print "beschleunigung_zout: ", ("%6d" % beschleunigung_zout), " skaliert: ", beschleunigung_zout_skaliert
                 #print beschleunigung_xout_skaliert,",", beschleunigung_yout_skaliert,",", beschleunigung_zout,",", gyroskop_xout,",", gyroskop_yout,",", gyroskop_zout
                 acc_data = gyroskop_zout
-                
+                print zehnercounter
                 #kurz vor kurve
-                while zehnercounter[5] == 0 and zehnercounter[6] == 0 and acc_data < 80:
+                if zehnercounter[5] == 0 and zehnercounter[6] == 0 and acc_data < 80:
                     set_motor_dutycycle(80)
-                    print "curve ahead"
+#                    print "curve ahead"
                 
                 #in der Kurve
-                while acc_data >= 110 and zehnercounter[5] == 0 and zehnercounter[6] == 0:
+                if acc_data >= 100 and zehnercounter[5] == 0 and zehnercounter[6] == 0:
                     set_motor_dutycycle(80)
-                    print "curve"
+#                    print "curve"
                     
                 #gerade     
-                while zehnercounter[5] >= 1 and zehnercounter[6] >= 1 and acc_data < 80:
+                if zehnercounter[5] >= 1 and zehnercounter[6] >= 1 and acc_data < 80:
                     set_motor_dutycycle(128)
-                    print "straight"
+#                    print "straight"
                 
                 
                 time.sleep(0.05)
@@ -250,7 +252,7 @@ def image_proc(image_src):
 #        cv2.imshow("top_view", cv2.Canny(top_view,100,220))
         top_view_sobel = cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)  #cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)
     
-        cv2.imshow("top_view_sobel", image_src)
+#        cv2.imshow("top_view_sobel", image_src)
 #        cv2.imshow("top_view_THSOBEL", np.invert(cv2.adaptiveThreshold(top_view_sobel,255,cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 3, 8)))
         
         top_view_gray = cv2.inRange(top_view, 200, 255)
@@ -260,7 +262,7 @@ def image_proc(image_src):
 
         #top_view = cv2.resize(top_view, None, fx = 3, fy = 3, interpolation = cv2.INTER_CUBIC)
         
-        cv2.imshow("gray", top_view)
+#        cv2.imshow("gray", top_view)
 #        cv2.imshow("whitefilter", top_view_gray)
         #Image Crop
         #320,240
