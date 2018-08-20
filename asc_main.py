@@ -38,8 +38,8 @@ lines = None
 
 
 #FLAGS
-RUNNING_ON_PI = True	#Abhaengig von der aktuellen Laufzeitumgebung
-MOTOR_ACTIVE = True	#Debugvariable- aktiviert den Motor, waehrend Debug ausgeschaltet
+RUNNING_ON_PI = False	#Abhaengig von der aktuellen Laufzeitumgebung
+MOTOR_ACTIVE = False	#Debugvariable- aktiviert den Motor, waehrend Debug ausgeschaltet
 BEEPER_ACTIVE = False	#Debugvariable- aktiviert den Beeper, waehrend Debug ausgeschaltet
 THREAD_STARTED = False	#Flag fuer Mutlithreading
 
@@ -99,17 +99,20 @@ def get_acc_data(x):
                 print zehnercounter
                 #kurz vor kurve
                 if zehnercounter[5] == 0 and zehnercounter[6] == 0 and acc_data < 80:
-                    set_motor_dutycycle(80)
+                    set_motor_dutycycle(70)
 #                    print "curve ahead"
                 
                 #in der Kurve
                 if acc_data >= 100 and zehnercounter[5] == 0 and zehnercounter[6] == 0:
-                    set_motor_dutycycle(80)
+		    set_motor_dutycycle(90)
+                    if acc_data <= 95:
+                        set_motor_dutycycle(120)
+                        break
 #                    print "curve"
                     
                 #gerade     
                 if zehnercounter[5] >= 1 and zehnercounter[6] >= 1 and acc_data < 80:
-                    set_motor_dutycycle(128)
+    		     set_motor_dutycycle(150)
 #                    print "straight"
                 
                 
@@ -224,8 +227,10 @@ def draw_grid(image_src):  #Funktion um Gitternetzlinien auf Bild zu zeichnen
 def image_proc(image_src):
     #Image Colorspace
                             #[240:480,0:640]
+        cv2.imshow("original", image_src)
         s1 = time.time()
         image_src = image_src[260:400,0:640]  #image_src[240:400,0:640]
+        cv2.imshow("ROI", image_src)
         image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)
         #image_src = undistort(image_src)  #ist erstmal raus, braucht zu lange
         image_src = cv2.resize(image_src, None, fx = 0.5, fy = 0.5, interpolation = cv2.INTER_CUBIC)
@@ -241,13 +246,14 @@ def image_proc(image_src):
         src = np.float32([[0,70], [0,0],[320,0],[320,70]])  #np.float32([[0,140], [0,0],[640,0],[640,140]])
         dst = np.float32([[140,70], [0,0],[320,0],[180,69]])  #np.float32([[280,140], [0,0],[640,0],[360,138]])
         M = cv2.getPerspectiveTransform(src, dst)
-        
+        print M
         top_view = cv2.warpPerspective(image_src,  M, (320,70)) #cv2.warpPerspective(image_src,  M, (640,140))
         e2 = time.time()
-#        cv2.imshow("ok", top_view)
+        cv2.imshow("warped", top_view)
         
         s3 = time.time()
         top_view = top_view[:,130:190]  #top_view = top_view[:,260:380]
+        cv2.imshow("meins", top_view)
         top_view = cv2.GaussianBlur(top_view, (5,5), 0)
 #        cv2.imshow("top_view", cv2.Canny(top_view,100,220))
         top_view_sobel = cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)  #cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)
