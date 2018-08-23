@@ -230,10 +230,10 @@ def image_proc(image_src):
         cv2.imshow("original", image_src)
         s1 = time.time()
         image_src = image_src[260:400,0:640]  #image_src[240:400,0:640]
-        cv2.imshow("ROI", image_src)
         image_src = cv2.cvtColor(image_src, cv2.COLOR_BGR2GRAY)
+        cv2.imshow("ROI", image_src)
         #image_src = undistort(image_src)  #ist erstmal raus, braucht zu lange
-        image_src = cv2.resize(image_src, None, fx = 0.5, fy = 0.5, interpolation = cv2.INTER_CUBIC)
+#########image_src = cv2.resize(image_src, None, fx = 0.5, fy = 0.5, interpolation = cv2.INTER_CUBIC)
 #        cv2.imshow("cropped", image_src)
      
 #        graybot = cv2.getTrackbarPos("bot", "slider") #0
@@ -243,33 +243,36 @@ def image_proc(image_src):
         
         s2 = time.time()
         #Transformation
-        src = np.float32([[0,70], [0,0],[320,0],[320,70]])  #np.float32([[0,140], [0,0],[640,0],[640,140]])
-        dst = np.float32([[140,70], [0,0],[320,0],[180,69]])  #np.float32([[280,140], [0,0],[640,0],[360,138]])
+        src = np.float32([[0,140], [0,0],[640,0],[640,140]])  #np.float32([[0,140], [0,0],[640,0],[640,140]])
+        dst = np.float32([[280,140], [0,0],[640,0],[360,138]])  #np.float32([[280,140], [0,0],[640,0],[360,138]])
         M = cv2.getPerspectiveTransform(src, dst)
-        print M
-        top_view = cv2.warpPerspective(image_src,  M, (320,70)) #cv2.warpPerspective(image_src,  M, (640,140))
+        top_view = cv2.warpPerspective(image_src,  M, (640,140)) #cv2.warpPerspective(image_src,  M, (640,140))
         e2 = time.time()
         cv2.imshow("warped", top_view)
         
         s3 = time.time()
-        top_view = top_view[:,130:190]  #top_view = top_view[:,260:380]
+        top_view = top_view[:,260:380]  #top_view = top_view[:,260:380]
         cv2.imshow("meins", top_view)
         top_view = cv2.GaussianBlur(top_view, (5,5), 0)
 #        cv2.imshow("top_view", cv2.Canny(top_view,100,220))
-        top_view_sobel = cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)  #cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)
+        #cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)
     
-#        cv2.imshow("top_view_sobel", image_src)
+        cv2.imshow("top_view_sobel8Uk3", cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3))
+        cv2.imshow("top_view_sobel8Uk5", cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=5))
+        cv2.imshow("top_view_sobel32Fk3", cv2.Sobel(top_view, cv2.CV_32F, 1, 0, ksize=3))
+        cv2.imshow("top_view_TH_MEAN_BINARY", np.invert(cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 7, 8)))
+        cv2.imshow("top_view_TH_GAUSS_BINARY", np.invert(cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY, 7, 8)))
 #        cv2.imshow("top_view_THSOBEL", np.invert(cv2.adaptiveThreshold(top_view_sobel,255,cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 3, 8)))
         
-        top_view_gray = cv2.inRange(top_view, 200, 255)
+        top_view_gray = cv2.inRange(top_view, 180, 255)
 
         top_view = cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 7, 8)
         top_view = np.invert(top_view)
 
         #top_view = cv2.resize(top_view, None, fx = 3, fy = 3, interpolation = cv2.INTER_CUBIC)
         
-#        cv2.imshow("gray", top_view)
-#        cv2.imshow("whitefilter", top_view_gray)
+        #cv2.imshow("gray", top_view)
+        #cv2.imshow("whitefilter", top_view_gray)
         #Image Crop
         #320,240
         #print image_src.shape[0]
@@ -361,39 +364,45 @@ def undistort(img):
 def histogram(top_view):
         global zehnercounter
         #Bild ist 70 hoch x 60 breit #Bild ist 140 hoch x 120 breit pixel
-        dummy = np.zeros((5,60))  #dummy = np.zeros((10,120))
+        dummy = np.zeros((10,120))  #dummy = np.zeros((10,120))
         s = np.array([dummy] * 7)
         
-        s[0] = top_view[65:70,:]  # s[0] = top_view[130:140,:]
+        #s[0] = top_view[65:70,:]
+        s[0] = top_view[130:140,:]
         #s0= cv2.resize(top_view[130:140,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
-        s[1] = top_view[60:65,:]  #s[1] = top_view[120:130,:]
+        #s[1] = top_view[60:65,:]
+        s[1] = top_view[120:130,:]
         #s1= cv2.resize(top_view[120:130,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)
-        s[2] = top_view[55:60,:]  #s[2] = top_view[110:120,:]
+        #s[2] = top_view[55:60,:]
+        s[2] = top_view[110:120,:]
         #s2= cv2.resize(top_view[110:120,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)  
-        s[3] = top_view[50:55,:]  #s[3] = top_view[100:110,:]
+        #s[3] = top_view[50:55,:]
+        s[3] = top_view[100:110,:]
         #s3= cv2.resize(top_view[100:110,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)      
-        s[4] = top_view[45:50,:]  #s[4] = top_view[90:100,:]
+        #s[4] = top_view[45:50,:]
+        s[4] = top_view[90:100,:]
         #s4= cv2.resize(top_view[90:100,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)       
-        s[5] = top_view[40:45,:]  #s[5] = top_view[80:90,:]
+        #s[5] = top_view[40:45,:]
+        s[5] = top_view[80:90,:]
         #s5= cv2.resize(top_view[80:90,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)    
-        s[6] = top_view[35:40,:]  #s[6] = top_view[70:80,:]
+        #s[6] = top_view[35:40,:]
+        s[6] = top_view[70:80,:]
         #s6= cv2.resize(top_view[70:80,:], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC)        
 
         #zehnercounter = [0] * 7
         zehnercounter = np.array([0] * 7)
         
-        histogram = np.zeros((60))
+        histogram = np.zeros((120)) #120
         histograms = np.array([histogram] * 7)
         
-        for n in range(7):      #bildauswahl
-            
-            for col in range(60):  #bildbreite range
+        for n in range(len(s)):      #bildauswahl
+            for col in range(s[n].shape[1]):  #bildbreite range
                 temp = cv2.countNonZero(s[n][:,col])
                 #s1_list.append(temp)  #^,->      links Zeile, rechts Spalte
                 #s1_plot[col, temp] = [255]
                 #cv2.circle(s1_plot,(col, temp), 1, (170), -1)
                 histogram[col] = temp
-                if temp == 5:
+                if temp == 10:
                     zehnercounter[n] += 1
             histograms[n] = histogram
         
@@ -402,7 +411,7 @@ def histogram(top_view):
         
         if cv2.waitKey(1) & 0xFF == ord('p'):
             for n in range(7):
-                cv2.imwrite("Test" + str(n) + ".png" , cv2.resize(s[n], None, fx = 4, fy = 4, interpolation = cv2.INTER_CUBIC))
+                cv2.imwrite("Test" + str(n) + ".png" , cv2.resize(s[n], None, fx = 1, fy = 1, interpolation = cv2.INTER_CUBIC))
                 print histograms
                 print ";"
 			    
