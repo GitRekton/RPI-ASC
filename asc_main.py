@@ -79,44 +79,48 @@ def get_acc_data(x):
         lock.release()								#hier endet die Atomare Operation.
         #hier wird der I2C ausgelesen
         while True:
-                #beschleunigung_xout = read_word_2c(0x3b)
-                #beschleunigung_yout = read_word_2c(0x3d)
-                #beschleunigung_zout = read_word_2c(0x3f)
-                #gyroskop_xout = read_word_2c(0x43)
-                #gyroskop_yout = read_word_2c(0x45)
-                gyroskop_zout = read_word_2c(0x47)
-                #beschleunigung_xout_skaliert = beschleunigung_xout / 16384.0
-                #beschleunigung_yout_skaliert = beschleunigung_yout / 16384.0
-                #beschleunigung_zout_skaliert = beschleunigung_zout / 16384.0
-                #gyroskop_xout = gyroskop_xout / 131
-                #gyroskop_yout = gyroskop_yout / 131
-                gyroskop_zout = gyroskop_zout / 131
-                #print "beschleunigung_xout: ", ("%6d" % beschleunigung_xout), " skaliert: ", beschleunigung_xout_skaliert
-                #print "beschleunigung_yout: ", ("%6d" % beschleunigung_yout), " skaliert: ", beschleunigung_yout_skaliert
-                #print "beschleunigung_zout: ", ("%6d" % beschleunigung_zout), " skaliert: ", beschleunigung_zout_skaliert
-                #print beschleunigung_xout_skaliert,",", beschleunigung_yout_skaliert,",", beschleunigung_zout,",", gyroskop_xout,",", gyroskop_yout,",", gyroskop_zout
-                acc_data = gyroskop_zout
-                print zehnercounter
-                #kurz vor kurve
-                if zehnercounter[5] == 0 and zehnercounter[6] == 0 and acc_data < 80:
-                    set_motor_dutycycle(70)
-#                    print "curve ahead"
-                
-                #in der Kurve
-                if acc_data >= 100 and zehnercounter[5] == 0 and zehnercounter[6] == 0:
-		    set_motor_dutycycle(90)
-                    if acc_data <= 95:
-                        set_motor_dutycycle(120)
-                        break
-#                    print "curve"
+                try:
+                    #beschleunigung_xout = read_word_2c(0x3b)
+                    #beschleunigung_yout = read_word_2c(0x3d)
+                    #beschleunigung_zout = read_word_2c(0x3f)
+                    #gyroskop_xout = read_word_2c(0x43)
+                    #gyroskop_yout = read_word_2c(0x45)
+                    gyroskop_zout = read_word_2c(0x47)
+                    #beschleunigung_xout_skaliert = beschleunigung_xout / 16384.0
+                    #beschleunigung_yout_skaliert = beschleunigung_yout / 16384.0
+                    #beschleunigung_zout_skaliert = beschleunigung_zout / 16384.0
+                    #gyroskop_xout = gyroskop_xout / 131
+                    #gyroskop_yout = gyroskop_yout / 131
+                    gyroskop_zout = gyroskop_zout / 131
+                    #print "beschleunigung_xout: ", ("%6d" % beschleunigung_xout), " skaliert: ", beschleunigung_xout_skaliert
+                    #print "beschleunigung_yout: ", ("%6d" % beschleunigung_yout), " skaliert: ", beschleunigung_yout_skaliert
+                    #print "beschleunigung_zout: ", ("%6d" % beschleunigung_zout), " skaliert: ", beschleunigung_zout_skaliert
+                    #print beschleunigung_xout_skaliert,",", beschleunigung_yout_skaliert,",", beschleunigung_zout,",", gyroskop_xout,",", gyroskop_yout,",", gyroskop_zout
+                    acc_data = gyroskop_zout
+                    #print zehnercounter
+                    #kurz vor kurve
+                    if zehnercounter[5] == 0 and zehnercounter[6] == 0 and acc_data < 80:
+                        set_motor_dutycycle(70)
+    #                    print "curve ahead"
                     
-                #gerade     
-                if zehnercounter[5] >= 1 and zehnercounter[6] >= 1 and acc_data < 80:
-    		     set_motor_dutycycle(150)
-#                    print "straight"
-                
-                
-                time.sleep(0.05)
+                    #in der Kurve
+                    if acc_data >= 100 and zehnercounter[5] == 0 and zehnercounter[6] == 0:
+                        set_motor_dutycycle(90)
+                        if acc_data <= 95:
+                            set_motor_dutycycle(120)
+                            break
+    #                    print "curve"
+                        
+                    #gerade     
+                    if zehnercounter[5] >= 1 and zehnercounter[6] >= 1 and acc_data < 80:
+                         set_motor_dutycycle(150)
+    #                    print "straight"
+                    
+                    
+                    time.sleep(0.05)
+                except IOError:
+                    print "IOError, going on.."
+                    pass
         lock.acquire()
         num_threads -= 1
         lock.release()    
@@ -258,17 +262,20 @@ def image_proc(image_src):
         #cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3)
     
         cv2.imshow("top_view_sobel8Uk3", cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=3))
-        cv2.imshow("top_view_sobel8Uk5", cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=5))
-        cv2.imshow("top_view_sobel32Fk3", cv2.Sobel(top_view, cv2.CV_32F, 1, 0, ksize=3))
-        cv2.imshow("top_view_TH_MEAN_BINARY", np.invert(cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 7, 8)))
-        cv2.imshow("top_view_TH_GAUSS_BINARY", np.invert(cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY, 7, 8)))
+        
+        #cv2.imshow("top_view_sobel8Uk5", cv2.Sobel(top_view, cv2.CV_8U, 1, 0, ksize=5))
+        
+        #cv2.imshow("top_view_sobel32Fk3", cv2.Sobel(top_view, cv2.CV_32F, 1, 0, ksize=3))
+        #cv2.imshow("top_view_TH_MEAN_BINARY", np.invert(cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 7, 8)))
+        #cv2.imshow("top_view_TH_GAUSS_BINARY", np.invert(cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY, 7, 8)))
 #        cv2.imshow("top_view_THSOBEL", np.invert(cv2.adaptiveThreshold(top_view_sobel,255,cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 3, 8)))
         
         top_view_gray = cv2.inRange(top_view, 180, 255)
 
         top_view = cv2.adaptiveThreshold(top_view, 255, cv2.ADAPTIVE_THRESH_MEAN_C , cv2.THRESH_BINARY, 7, 8)
         top_view = np.invert(top_view)
-
+        julian(top_view[40:100,:])
+        print top_view.shape
         #top_view = cv2.resize(top_view, None, fx = 3, fy = 3, interpolation = cv2.INTER_CUBIC)
         
         #cv2.imshow("gray", top_view)
@@ -298,7 +305,34 @@ def image_proc(image_src):
         #print e1 - s1, ".", e2 - s2, ",", e3 - s3
         return top_view
 
+def julian(img):
+        try:
+            img = cv2.resize(img, None, fx = 0.5, fy = 0.5, interpolation = cv2.INTER_CUBIC)
+            s1 = time.time()
+            gray = np.copy(img)
+            
+            h, w = img.shape[:2]
 
+            eigen = cv2.cornerEigenValsAndVecs(gray, 800, 7)
+            eigen = eigen.reshape(h, w, 3, 2)  # [[e1, e2], v1, v2]
+            flow = eigen[:,:,2]
+
+            vis = img.copy()
+            vis[:] = (192 + np.uint32(vis)) / 2
+            d = 12
+            points =  np.dstack( np.mgrid[d/2:w:d, d/2:h:d] ).reshape(-1, 2)
+            for x, y in np.int32(points):
+                vx, vy = np.int32(flow[y, x]*d)
+                cv2.line(vis, (x-vx, y-vy), (x+vx, y+vy), (0, 0, 0), 1, cv2.LINE_AA)
+                break
+            e1 = time.time()
+            cv2.imshow('input', img)
+            cv2.imshow('flow', vis)
+            print (e1 - s1) *1000 , "-------------------------------"
+        except:
+            print "No"
+        return None
+    
 def get_median(l):
         global Q
         Q.pop()
@@ -348,18 +382,7 @@ def undistort(img):
     map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
     return cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
-#def init():
-#    cv2.namedWindow("slider")
-#    cv2.createTrackbar("HUE_top", "slider", 0, 180, nothing)
-#    cv2.createTrackbar("SATURATION_top", "slider", 0, 255, nothing)
-#    cv2.createTrackbar("VALUE_top", "slider", 0, 255, nothing)
-    
-#    cv2.createTrackbar("HUE_bot", "slider", 0, 180, nothing)
-#    cv2.createTrackbar("SATURATION_bot", "slider", 0, 255, nothing)
-#    cv2.createTrackbar("VALUE_bot", "slider", 0, 255, nothing)
-    
-#    cv2.createTrackbar("bot", "slider", 0, 255, nothing)
-#    cv2.createTrackbar("top", "slider", 0, 255, nothing)
+
 
 def histogram(top_view):
         global zehnercounter
